@@ -43,7 +43,5 @@ next-env.d.ts
 docs
 
 # md files
-PRODUCT.md
-AGENTS.md
-DESIGN.md
-CLAUDE.md
+*.md
+!README.md

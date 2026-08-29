@@ -9,6 +9,7 @@ import {
   Star,
   BadgePercent,
   Newspaper,
+  Images,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -52,6 +53,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Promotions", href: "/promotions", icon: BadgePercent },
       { label: "Content", href: "/content", icon: Newspaper },
+      { label: "Media library", href: "/media", icon: Images },
     ],
   },
   {
