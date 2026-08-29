@@ -34,3 +34,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# folders
+.claude
+.impeccable
+.remember
+docs
+
+# md files
+PRODUCT.md
+AGENTS.md
+DESIGN.md
+CLAUDE.md
