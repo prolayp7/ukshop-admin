@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { DesktopSidebar, MobileSidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen bg-canvas">
