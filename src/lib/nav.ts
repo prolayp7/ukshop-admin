@@ -11,6 +11,7 @@ import {
   Newspaper,
   Images,
   BarChart3,
+  Palette,
   Settings,
 } from "lucide-react";
 
@@ -62,7 +63,10 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "System",
-    items: [{ label: "Settings", href: "/settings", icon: Settings }],
+    items: [
+      { label: "Design", href: "/design", icon: Palette },
+      { label: "Settings", href: "/settings", icon: Settings },
+    ],
   },
 ];
 
