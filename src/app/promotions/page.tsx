@@ -1,12 +1,5 @@
-import { BadgePercent } from "lucide-react";
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { Suspense } from "react"; import { DiscountsPage } from "@/components/discounts/discounts-page";
 
 export default function PromotionsPage() {
-  return (
-    <ComingSoon
-      icon={BadgePercent}
-      title="Promotions"
-      description="Coupons, deals, discounts and featured product placement — built next on this same system."
-    />
-  );
+  return <Suspense fallback={<div className="min-h-80 animate-pulse rounded-xl bg-neutral-tint"/>}><DiscountsPage/></Suspense>;
 }

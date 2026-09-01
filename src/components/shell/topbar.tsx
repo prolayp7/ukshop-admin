@@ -162,7 +162,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
               <div className="p-1.5">
                 <Link
                   ref={firstMenuItemRef}
-                  href="/settings"
+                  href="/account-settings"
                   role="menuitem"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-neutral-tint hover:text-ink"

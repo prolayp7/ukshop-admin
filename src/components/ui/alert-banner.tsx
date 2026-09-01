@@ -9,9 +9,9 @@ const toneStyles: Record<
   { wrap: string; icon: string; button: string }
 > = {
   warning: {
-    wrap: "bg-accent-tint border-accent-tint-border",
-    icon: "text-accent-strong",
-    button: "bg-ink text-white hover:bg-ink/90",
+    wrap: "bg-highlight-tint border-highlight-tint-border",
+    icon: "text-highlight-strong",
+    button: "bg-sidebar text-white hover:bg-sidebar-hover",
   },
   danger: {
     wrap: "bg-danger-tint border-danger-tint-border",

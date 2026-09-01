@@ -1,14 +1,90 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  PackageCheck,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { safeReturnPath } from "@/lib/return-path";
+
+// Fixed-seed PRNG so the starfield is identical on server and client render (no hydration mismatch).
+function mulberry32(seed: number) {
+  return function random() {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const randomStar = mulberry32(1337);
+const STARS = Array.from({ length: 130 }, () => ({
+  cx: randomStar() * 600,
+  cy: randomStar() * 430,
+  r: randomStar() * 1.2 + 0.3,
+  o: randomStar() * 0.7 + 0.25,
+}));
+
+// Builds a rounded-corner clip-path polygon whose left edge stays straight and whose
+// right edge tapers inward toward the bottom, approximating a true circular corner
+// radius (in px) with a short arc of line segments so it reads as smoothly rounded.
+function tapedPanelClipPath(radius: number, bottomTaper: string, segments = 10) {
+  const arc = (cx: string, cy: string, startDeg: number, endDeg: number) =>
+    Array.from({ length: segments + 1 }, (_, i) => {
+      const deg = startDeg + ((endDeg - startDeg) * i) / segments;
+      const rad = (deg * Math.PI) / 180;
+      const dx = (radius * Math.cos(rad)).toFixed(2);
+      const dy = (radius * Math.sin(rad)).toFixed(2);
+      return `calc(${cx} + ${dx}px) calc(${cy} + ${dy}px)`;
+    });
+
+  const points = [
+    ...arc(`${radius}px`, `${radius}px`, 180, 270), // top-left
+    ...arc(`100% - ${radius}px`, `${radius}px`, 270, 360), // top-right
+    ...arc(`100% - ${bottomTaper} - ${radius}px`, `100% - ${radius}px`, 0, 90), // bottom-right (tapered)
+    ...arc(`${radius}px`, `100% - ${radius}px`, 90, 180), // bottom-left
+  ];
+
+  return `polygon(${points.join(", ")})`;
+}
+
+const PANEL_CLIP_PATH = tapedPanelClipPath(40, "7%");
+
+const OPS_FACTS = [
+  {
+    icon: ShieldCheck,
+    title: "Authorised staff access only",
+    body: "All sign-ins are logged and monitored",
+  },
+  {
+    icon: PackageCheck,
+    title: "Stock synced in real time",
+    body: "Every channel reflects the same inventory",
+  },
+  {
+    icon: Truck,
+    title: "Orders tracked end to end",
+    body: "From checkout to doorstep, always visible",
+  },
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showResetHint, setShowResetHint] = useState(false);
+  const [factIndex, setFactIndex] = useState(0);
+  const activeFact = OPS_FACTS[factIndex];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,7 +109,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.replace("/");
+      const returnPath = safeReturnPath(new URLSearchParams(window.location.search).get("next"));
+      router.replace(returnPath);
       router.refresh();
     } catch {
       setError("We couldn't reach the sign-in service. Check your connection and try again.");
@@ -43,17 +120,101 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen bg-canvas">
-      <section className="relative hidden w-[44%] overflow-hidden bg-sidebar px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between xl:px-16">
-        <div className="absolute inset-0 opacity-50 [background:radial-gradient(circle_at_18%_12%,rgba(245,165,36,0.16),transparent_32%),radial-gradient(circle_at_82%_78%,rgba(71,84,103,0.24),transparent_38%)]" />
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-md bg-accent text-accent-ink">
-            <LockKeyhole className="size-[18px]" aria-hidden="true" />
+    <main className="flex min-h-screen items-stretch bg-canvas p-3 lg:p-4">
+      <section
+        className="relative hidden w-[46%] shrink-0 overflow-hidden bg-[#050c18] px-10 py-9 text-white lg:flex lg:flex-col lg:justify-between xl:px-14 [filter:drop-shadow(0_18px_40px_rgba(10,37,64,0.35))]"
+        style={{ clipPath: PANEL_CLIP_PATH }}
+      >
+        <svg
+          className="pointer-events-none absolute inset-0 -z-20 size-full"
+          viewBox="0 0 600 760"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
+          <defs>
+            <radialGradient id="sky" cx="50%" cy="18%" r="85%">
+              <stop offset="0%" stopColor="#122036" />
+              <stop offset="55%" stopColor="#0a1727" />
+              <stop offset="100%" stopColor="#040914" />
+            </radialGradient>
+            <radialGradient id="nebula" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#5b6ecb" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#5b6ecb" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="terrain" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#26364c" />
+              <stop offset="100%" stopColor="#0c1420" />
+            </linearGradient>
+            <linearGradient id="podBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3a4451" />
+              <stop offset="55%" stopColor="#1c222b" />
+              <stop offset="100%" stopColor="#0c0f14" />
+            </linearGradient>
+            <radialGradient id="core" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#fff3d6" />
+              <stop offset="35%" stopColor="#ff8a00" />
+              <stop offset="100%" stopColor="#c23a12" />
+            </radialGradient>
+            <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ff8a00" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#ff8a00" stopOpacity="0" />
+            </radialGradient>
+            <filter id="blurGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="16" />
+            </filter>
+            <filter id="blurNebula" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="45" />
+            </filter>
+          </defs>
+
+          <rect width="600" height="760" fill="url(#sky)" />
+
+          <g transform="translate(150,160) rotate(-18)" filter="url(#blurNebula)">
+            <ellipse cx="0" cy="0" rx="260" ry="110" fill="url(#nebula)" />
+          </g>
+          <g transform="translate(430,90) rotate(12)" filter="url(#blurNebula)">
+            <ellipse cx="0" cy="0" rx="200" ry="85" fill="url(#nebula)" />
+          </g>
+
+          {STARS.map((star, index) => (
+            <circle key={index} cx={star.cx} cy={star.cy} r={star.r} fill="#ffffff" opacity={star.o} />
+          ))}
+
+          <path
+            d="M0,540 C90,505 150,555 240,525 C340,492 400,565 500,530 C545,514 575,522 600,515 L600,760 L0,760 Z"
+            fill="url(#terrain)"
+          />
+          <path
+            d="M0,540 C90,505 150,555 240,525 C340,492 400,565 500,530 C545,514 575,522 600,515"
+            fill="none"
+            stroke="#5a7396"
+            strokeOpacity="0.4"
+            strokeWidth="2"
+          />
+
+          <g transform="translate(255,505) rotate(-7)">
+            <ellipse cx="55" cy="0" rx="95" ry="95" fill="url(#halo)" filter="url(#blurGlow)" />
+            <rect x="-95" y="-30" width="180" height="60" rx="30" fill="url(#podBody)" />
+            <rect x="-70" y="-11" width="14" height="14" rx="2" fill="#ff8a00" opacity="0.85" />
+            <circle cx="55" cy="0" r="24" fill="url(#core)" />
+          </g>
+        </svg>
+
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#050c18] via-[#050c18]/10 to-[#050c18]/45" />
+
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-md bg-accent text-accent-ink">
+              <LockKeyhole className="size-[18px]" aria-hidden="true" />
+            </span>
+            <span className="text-[14.5px] font-semibold tracking-[-0.01em]">UK Computer Shop</span>
+          </div>
+          <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium tracking-[0.01em] text-sidebar-ink">
+            Operations desk
           </span>
-          <span className="text-[14.5px] font-semibold tracking-[-0.01em]">UK Computer Shop</span>
         </div>
 
-        <div className="relative max-w-[31rem] pb-8">
+        <div className="relative max-w-[31rem] pb-28">
           <h1 className="max-w-[11ch] text-balance text-[clamp(2.8rem,4.2vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.04em]">
             Your store, under control.
           </h1>
@@ -62,13 +223,36 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="relative flex items-center gap-2 text-xs text-sidebar-ink">
-          <ShieldCheck className="size-4 text-accent" aria-hidden="true" />
-          Authorised staff access only
+        <div className="relative mr-[calc(7%_+_16px)] flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-4 backdrop-blur-sm">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/20 text-white">
+            <activeFact.icon className="size-4 text-accent" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-white">{activeFact.title}</p>
+            <p className="truncate text-[11.5px] leading-5 text-sidebar-ink">{activeFact.body}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFactIndex((value) => (value - 1 + OPS_FACTS.length) % OPS_FACTS.length)}
+              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-sidebar-ink transition-colors hover:border-white/35 hover:text-white"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setFactIndex((value) => (value + 1) % OPS_FACTS.length)}
+              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-sidebar-ink transition-colors hover:border-white/35 hover:text-white"
+              aria-label="Next"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className="flex min-h-screen flex-1 items-center justify-center px-5 py-12 sm:px-10">
+      <section className="flex flex-1 items-center justify-center px-5 py-12 sm:px-10">
         <div className="w-full max-w-[400px]">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <span className="flex size-9 items-center justify-center rounded-md bg-sidebar text-accent">
@@ -77,7 +261,8 @@ export default function LoginPage() {
             <span className="text-[14.5px] font-semibold text-ink">UK Computer Shop</span>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-[-0.025em] text-ink">Sign in to admin</h2>
+          <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-accent-strong">Welcome back</p>
+          <h2 className="mt-2 text-[26px] font-semibold tracking-[-0.025em] text-ink">Sign in to admin</h2>
           <p className="mt-2 text-[13.5px] leading-6 text-ink-muted">
             Use your staff account to continue to the operations desk.
           </p>
@@ -101,9 +286,18 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-5">
-              <label htmlFor="password" className="text-[13px] font-semibold text-ink-secondary">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-[13px] font-semibold text-ink-secondary">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowResetHint((value) => !value)}
+                  className="text-[12.5px] font-medium text-accent-strong transition-colors hover:text-accent"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative mt-2">
                 <input
                   id="password"
@@ -123,6 +317,11 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="size-[17px]" /> : <Eye className="size-[17px]" />}
                 </button>
               </div>
+              {showResetHint ? (
+                <p className="mt-2 text-[12.5px] leading-5 text-ink-muted">
+                  Password resets are handled by your system administrator — reach out to them directly.
+                </p>
+              ) : null}
             </div>
 
             {error ? (
@@ -134,7 +333,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-[13.5px] font-semibold text-white transition-[background-color,transform] hover:bg-[#1d2939] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-65"
+              className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-linear-to-r from-accent to-accent-strong px-4 text-[13.5px] font-semibold text-accent-ink shadow-[0_10px_24px_-10px_rgb(11_100_214/0.55)] transition-[filter,transform] hover:brightness-105 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-65"
             >
               {isSubmitting ? (
                 <>

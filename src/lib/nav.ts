@@ -51,7 +51,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Marketing",
     items: [
-      { label: "Promotions", href: "/promotions", icon: BadgePercent },
+      { label: "Discounts", href: "/promotions", icon: BadgePercent },
       { label: "Content", href: "/content", icon: Newspaper },
       { label: "Media library", href: "/media", icon: Images },
     ],
@@ -69,6 +69,7 @@ export const navGroups: NavGroup[] = [
 export const flatNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
 
 export function pageTitleForPath(pathname: string): string {
+  if (pathname.startsWith("/account-settings")) return "Account settings";
   const match = flatNavItems.find((item) =>
     item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
   );

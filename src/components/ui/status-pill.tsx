@@ -1,10 +1,11 @@
 import { cn } from "@/lib/cn";
 
-export type StatusTone = "positive" | "danger" | "accent" | "neutral";
+export type StatusTone = "positive" | "danger" | "attention" | "accent" | "neutral";
 
 const toneClasses: Record<StatusTone, string> = {
   positive: "bg-positive-tint text-positive-tint-ink ring-positive-tint-border",
   danger: "bg-danger-tint text-danger-tint-ink ring-danger-tint-border",
+  attention: "bg-highlight-tint text-highlight-tint-ink ring-highlight-tint-border",
   accent: "bg-accent-tint text-accent-tint-ink ring-accent-tint-border",
   neutral: "bg-neutral-tint text-neutral-tint-ink ring-border",
 };

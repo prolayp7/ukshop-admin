@@ -1,0 +1,1 @@
+import{DiscountForm}from"@/components/discounts/discount-form";export default async function Page({params}:{params:Promise<{kind:string;id:string}>}){const p=await params;return <DiscountForm kind={p.kind==="sales"?"sales":"codes"} id={Number(p.id)}/>}

@@ -1,0 +1,1 @@
+import { BrandSupplierForm } from "@/components/brands/brand-supplier-form"; export default async function Page({params}:{params:Promise<{id:string}>}){return <BrandSupplierForm type="brand" id={Number((await params).id)}/>}

@@ -21,7 +21,7 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
           <span className="block text-[13.5px] font-semibold tracking-tight text-white">
             UK Computer Shop
           </span>
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-label">
             Administration
           </span>
         </span>
@@ -55,7 +55,7 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
                       <Icon
                         className={cn(
                           "h-[17px] w-[17px] shrink-0",
-                          active ? "text-accent" : "text-sidebar-ink group-hover:text-sidebar-ink-hover"
+                          active ? "text-white" : "text-sidebar-ink group-hover:text-sidebar-ink-hover"
                         )}
                         strokeWidth={2}
                       />
@@ -66,7 +66,7 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
                             "min-w-[19px] rounded-full px-1.5 py-0.5 text-center text-[10.5px] font-semibold leading-none",
                             item.badgeTone === "danger"
                               ? "bg-danger text-white"
-                              : "bg-accent text-accent-ink"
+                              : "bg-highlight text-highlight-ink"
                           )}
                         >
                           {item.badge}

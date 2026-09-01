@@ -9,69 +9,77 @@
   --font-mono: var(--font-geist-mono);
 
   /* Canvas & surfaces */
-  --color-canvas: #f7f8fa;
+  --color-canvas: #f4f6f9;
   --color-surface: #ffffff;
-  --color-sidebar: #0b1220;
-  --color-sidebar-hover: #16202f;
-  --color-sidebar-active: #1c2a3d;
+  --color-sidebar: #0a2540;
+  --color-sidebar-hover: #123a5e;
+  --color-sidebar-active: #0b64d6;
 
   /* Borders */
-  --color-border: #e4e7ec;
-  --color-border-strong: #d0d5dd;
-  --color-sidebar-border: #1f2937;
+  --color-border: #e2e6ec;
+  --color-border-strong: #c8d3e0;
+  --color-sidebar-border: #244867;
 
   /* Ink (text) */
-  --color-ink: #101828;
-  --color-ink-secondary: #475467;
-  --color-ink-muted: #667085;
-  --color-ink-faint: #98a2b3;
-  --color-sidebar-ink: #94a3b8;
-  --color-sidebar-ink-hover: #e2e8f0;
+  --color-ink: #101827;
+  --color-ink-secondary: #4b5565;
+  --color-ink-muted: #6b7585;
+  --color-ink-faint: #93a0b1;
+  --color-sidebar-ink: #c7d6e6;
+  --color-sidebar-ink-hover: #ffffff;
   --color-sidebar-ink-active: #ffffff;
-  --color-sidebar-label: #5b6b81;
+  --color-sidebar-label: #7fb2f0;
 
-  /* Accent — the one committed color (Restrained strategy) */
-  --color-accent: #f5a524;
-  --color-accent-strong: #d4880f;
-  --color-accent-ink: #402c04;
-  --color-accent-tint: #fef6e7;
-  --color-accent-tint-border: #f6dfa8;
-  --color-accent-tint-ink: #7c4a03;
+  /* Highstreet retail blue — navigation, focus and primary emphasis */
+  --color-accent: #0b64d6;
+  --color-accent-strong: #0950ad;
+  --color-accent-ink: #ffffff;
+  --color-accent-tint: #e8f1fd;
+  --color-accent-tint-border: #bdd5f5;
+  --color-accent-tint-ink: #0950ad;
+
+  /* Highstreet orange — reserved for attention counts and highlights */
+  --color-highlight: #ff8a00;
+  --color-highlight-strong: #d96f00;
+  --color-highlight-ink: #2a1400;
+  --color-highlight-tint: #fff3e5;
+  --color-highlight-tint-border: #ffd19a;
+  --color-highlight-tint-ink: #9a4d00;
 
   /* Status vocabulary, reused everywhere a state needs a color */
-  --color-positive: #16a34a;
-  --color-positive-tint: #eefbf1;
-  --color-positive-tint-border: #bfe8cc;
-  --color-positive-tint-ink: #12703a;
+  --color-positive: #00875a;
+  --color-positive-tint: #eaf7f2;
+  --color-positive-tint-border: #b7dfd1;
+  --color-positive-tint-ink: #006b48;
 
-  --color-danger: #dc2626;
-  --color-danger-tint: #fdf1f1;
-  --color-danger-tint-border: #f3c6c6;
-  --color-danger-tint-ink: #9f1c1c;
+  --color-danger: #d3223a;
+  --color-danger-tint: #fdeaed;
+  --color-danger-tint-border: #efbdc5;
+  --color-danger-tint-ink: #a7192d;
 
   --color-neutral-tint: #eef1f5;
-  --color-neutral-tint-ink: #475467;
+  --color-neutral-tint-ink: #4b5565;
 
-  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04);
-  --shadow-panel: 0 8px 24px -8px rgb(16 24 40 / 0.18);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --shadow-card: 0 1px 2px rgb(16 24 39 / 0.06), 0 6px 18px -8px rgb(16 24 39 / 0.12);
+  --shadow-panel: 0 18px 48px -18px rgb(10 37 64 / 0.32);
+  --background: #f4f6f9;
+  --foreground: #101827;
+  --card: #ffffff;
+  --card-foreground: #101827;
+  --popover: #ffffff;
+  --popover-foreground: #101827;
+  --primary: #0a2540;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1f5;
+  --secondary-foreground: #101827;
+  --muted: #eef1f5;
+  --muted-foreground: #6b7585;
+  --accent: #e8f1fd;
+  --accent-foreground: #0950ad;
+  --destructive: #d3223a;
+  --border: #e2e6ec;
+  --input: #c8d3e0;
+  --ring: #0b64d6;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -117,6 +125,13 @@
   --color-accent-tint: var(--color-accent-tint);
   --color-accent-tint-border: var(--color-accent-tint-border);
   --color-accent-tint-ink: var(--color-accent-tint-ink);
+
+  --color-highlight: var(--color-highlight);
+  --color-highlight-strong: var(--color-highlight-strong);
+  --color-highlight-ink: var(--color-highlight-ink);
+  --color-highlight-tint: var(--color-highlight-tint);
+  --color-highlight-tint-border: var(--color-highlight-tint-border);
+  --color-highlight-tint-ink: var(--color-highlight-tint-ink);
 
   --color-positive: var(--color-positive);
   --color-positive-tint: var(--color-positive-tint);

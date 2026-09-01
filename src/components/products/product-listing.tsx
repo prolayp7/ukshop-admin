@@ -3,10 +3,13 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Archive,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -27,9 +30,11 @@ import {
 import { cn } from "@/lib/cn";
 import { mediaFileUrl } from "@/lib/media";
 import type { CatalogOption, ProductListItem, ProductListMeta, ProductStatus } from "@/lib/products";
-import { ProductTypeChooser, type ProductCreationType } from "@/components/products/product-type-chooser";
+import { ProductTypeChooser } from "@/components/products/product-type-chooser";
 
 const emptyMeta: ProductListMeta = { page: 1, perPage: 20, total: 0, totalPages: 0 };
+type ProductSortKey = "id" | "title" | "reference" | "category" | "priceExcl" | "priceIncl" | "quantity" | "variants" | "status" | "updatedAt";
+type SortDirection = "asc" | "desc";
 
 function errorMessage(payload: unknown, fallback: string) {
   if (payload && typeof payload === "object" && "message" in payload) {
@@ -76,6 +81,8 @@ export function ProductListing() {
   const [priceMin, setPriceMin] = useState(""); const [priceMax, setPriceMax] = useState("");
   const [stockMin, setStockMin] = useState(""); const [stockMax, setStockMax] = useState("");
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [sortKey, setSortKey] = useState<ProductSortKey>("updatedAt"), [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,7 +91,6 @@ export function ProductListing() {
   const [exporting, setExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [typeChooserOpen, setTypeChooserOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductListItem | "new" | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -101,8 +107,8 @@ export function ProductListing() {
       .catch(() => undefined);
   }, []);
 
-  const queryParams = useCallback((requestedPage = page, perPage = 20) => {
-    const params = new URLSearchParams({ page: String(requestedPage), perPage: String(perPage) });
+  const queryParams = useCallback((requestedPage = page, requestedPerPage = perPage) => {
+    const params = new URLSearchParams({ page: String(requestedPage), perPage: String(requestedPerPage) });
     if (search) params.set("q", search);
     if (status) params.set("status", status);
     if (categoryId) params.set("categoryId", categoryId);
@@ -111,7 +117,7 @@ export function ProductListing() {
     if (priceMin) params.set("priceMin", priceMin); if (priceMax) params.set("priceMax", priceMax);
     if (stockMin) params.set("stockMin", stockMin); if (stockMax) params.set("stockMax", stockMax);
     return params;
-  }, [brandId, categoryId, idMax, idMin, page, priceMax, priceMin, search, status, stockMax, stockMin]);
+  }, [brandId, categoryId, idMax, idMin, page, perPage, priceMax, priceMin, search, status, stockMax, stockMin]);
 
   const loadProducts = useCallback(async () => {
     setLoading(true); setError("");
@@ -184,6 +190,8 @@ export function ProductListing() {
   }
 
   const filtersActive = Boolean(searchInput || status || categoryId || brandId || idMin || idMax || priceMin || priceMax || stockMin || stockMax);
+  const sortedItems = useMemo(() => [...items].sort((left, right) => { const variant = (item: ProductListItem) => item.variants[0]; const price = (item: ProductListItem) => Number(variant(item)?.salePrice ?? variant(item)?.price ?? 0); const values: Record<ProductSortKey, [string | number, string | number]> = { id: [left.id, right.id], title: [left.title, right.title], reference: [left.sku ?? left.mpn ?? "", right.sku ?? right.mpn ?? ""], category: [left.category.title, right.category.title], priceExcl: [price(left), price(right)], priceIncl: [price(left) * (1 + Number(left.taxRate?.ratePercent ?? 0) / 100), price(right) * (1 + Number(right.taxRate?.ratePercent ?? 0) / 100)], quantity: [left.inventory.stockQty, right.inventory.stockQty], variants: [left._count.variants, right._count.variants], status: [left.status, right.status], updatedAt: [new Date(left.updatedAt).getTime(), new Date(right.updatedAt).getTime()] }; const [a, b] = values[sortKey]; const result = typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b), "en-GB", { sensitivity: "base" }); return sortDirection === "asc" ? result : -result; }), [items, sortDirection, sortKey]);
+  function changeSort(column: ProductSortKey) { if (sortKey === column) setSortDirection((direction) => direction === "asc" ? "desc" : "asc"); else { setSortKey(column); setSortDirection("asc"); } }
 
   return <div>
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -211,12 +219,10 @@ export function ProductListing() {
     {notice ? <div className="mt-4 flex items-center justify-between rounded-md bg-positive-tint px-3.5 py-2.5 text-xs text-positive-tint-ink ring-1 ring-inset ring-positive-tint-border"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification"><X className="h-4 w-4" /></button></div> : null}
     {selected.size ? <BulkBar count={selected.size} disabled={mutating} onUpdate={(nextStatus) => void updateProducts([...selected], nextStatus)} onClear={() => setSelected(new Set())} /> : null}
 
-    {error ? <ErrorState message={error} onRetry={loadProducts} /> : loading ? <LoadingState /> : items.length === 0 ? <EmptyState filtered={filtersActive} onClear={() => { setSearchInput(""); setStatus(""); setCategoryId(""); setBrandId(""); setIdMin(""); setIdMax(""); setPriceMin(""); setPriceMax(""); setStockMin(""); setStockMax(""); setPage(1); }} onImport={() => setImportOpen(true)} /> : <><DesktopTable items={items} selected={selected} disabled={mutating} onToggleAll={toggleAll} onToggle={toggleOne} onStatus={(id, nextStatus) => void updateProducts([id], nextStatus)} onEdit={setEditingProduct} onDuplicate={(id) => void duplicateProduct(id)} onDelete={(id) => void deleteProduct(id)} /><MobileList items={items} disabled={mutating} onStatus={(id, nextStatus) => void updateProducts([id], nextStatus)} onEdit={setEditingProduct} onDuplicate={(id) => void duplicateProduct(id)} onDelete={(id) => void deleteProduct(id)} /></>}
+    {error ? <ErrorState message={error} onRetry={loadProducts} /> : loading ? <LoadingState /> : items.length === 0 ? <EmptyState filtered={filtersActive} onClear={() => { setSearchInput(""); setStatus(""); setCategoryId(""); setBrandId(""); setIdMin(""); setIdMax(""); setPriceMin(""); setPriceMax(""); setStockMin(""); setStockMax(""); setPage(1); }} onImport={() => setImportOpen(true)} /> : <><DesktopTable items={sortedItems} selected={selected} disabled={mutating} sortKey={sortKey} sortDirection={sortDirection} onSort={changeSort} onToggleAll={toggleAll} onToggle={toggleOne} onStatus={(id, nextStatus) => void updateProducts([id], nextStatus)} onEdit={(item) => router.push(`/products/${item.id}`)} onDuplicate={(id) => void duplicateProduct(id)} onDelete={(id) => void deleteProduct(id)} footer={<ProductPagination meta={meta} page={page} perPage={perPage} onPageChange={setPage} onPerPageChange={(value) => { setPerPage(value); setPage(1); }} />} /><MobileList items={sortedItems} disabled={mutating} onStatus={(id, nextStatus) => void updateProducts([id], nextStatus)} onEdit={(item) => router.push(`/products/${item.id}`)} onDuplicate={(id) => void duplicateProduct(id)} onDelete={(id) => void deleteProduct(id)} /></>}
 
-    {!loading && !error && meta.totalPages > 1 ? <div className="mt-5 flex items-center justify-between border-t border-border pt-4"><p className="text-xs text-ink-muted">Page {meta.page} of {meta.totalPages}</p><div className="flex gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-xs font-semibold text-ink-secondary shadow-card disabled:opacity-45"><ChevronLeft className="h-4 w-4" />Previous</button><button type="button" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-xs font-semibold text-ink-secondary shadow-card disabled:opacity-45">Next<ChevronRight className="h-4 w-4" /></button></div></div> : null}
     {importOpen ? <ImportDialog onClose={() => setImportOpen(false)} onComplete={(message) => { setImportOpen(false); setNotice(message); void loadProducts(); }} /> : null}
     {typeChooserOpen ? <ProductTypeChooser onClose={() => setTypeChooserOpen(false)} onContinue={(type) => { setTypeChooserOpen(false); router.push(`/products/new?type=${type}`); }} /> : null}
-    {editingProduct ? <ProductDialog product={editingProduct === "new" ? null : editingProduct} creationType="standard" categories={categories} brands={brands} onClose={() => setEditingProduct(null)} onComplete={(message) => { setEditingProduct(null); setNotice(message); void loadProducts(); }} /> : null}
   </div>;
 }
 
@@ -233,8 +239,18 @@ function StatusSelect({ item, disabled, onChange }: { item: ProductListItem; dis
   return <select value={item.status} disabled={disabled} onChange={(event) => onChange(event.target.value as ProductStatus)} aria-label={`Change status for ${item.title}`} className={cn("rounded-full px-2 py-1 text-[10.5px] font-semibold ring-1 ring-inset outline-none", statusClass(item.status))}><option value="ACTIVE">Active</option><option value="DRAFT">Draft</option><option value="ARCHIVED">Archived</option></select>;
 }
 
-function DesktopTable({ items, selected, disabled, onToggleAll, onToggle, onStatus, onEdit, onDuplicate, onDelete }: { items: ProductListItem[]; selected: Set<number>; disabled: boolean; onToggleAll: () => void; onToggle: (id: number) => void; onStatus: (id: number, status: ProductStatus) => void; onEdit: (item: ProductListItem) => void; onDuplicate: (id: number) => void; onDelete: (id: number) => void }) {
-  return <div className="mt-4 hidden overflow-x-auto rounded-lg border border-border bg-surface shadow-card md:block"><table className="w-full min-w-[980px] border-collapse"><thead><tr className="border-b border-border bg-canvas text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-muted"><th className="w-12 px-4 py-3"><input type="checkbox" checked={selected.size === items.length} onChange={onToggleAll} aria-label="Select all products" className="h-4 w-4 accent-ink" /></th><th className="px-2 py-3">ID</th><th className="px-2 py-3">Product</th><th className="px-3 py-3">Reference</th><th className="px-3 py-3">Category</th><th className="px-3 py-3">Price (excl.)</th><th className="px-3 py-3">Price (incl.)</th><th className="px-3 py-3">Quantity</th><th className="px-3 py-3">Variants</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Updated</th><th className="w-14 px-3 py-3" /></tr></thead><tbody>{items.map((item) => { const variant = item.variants[0]; return <tr key={item.id} className="border-b border-border last:border-0 hover:bg-canvas/70"><td className="px-4 py-3"><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Select ${item.title}`} className="h-4 w-4 accent-ink" /></td><td className="px-2 py-3 text-xs font-semibold text-ink-secondary">{item.id}</td><td className="px-2 py-3"><div className="flex min-w-60 items-center gap-3"><ProductThumb item={item} /><div className="min-w-0"><p className="max-w-72 truncate text-[13px] font-semibold text-ink">{item.title}</p><p className="mt-0.5 font-mono text-[10.5px] text-ink-muted">{item.sku || item.mpn || `ID-${item.id}`}</p></div></div></td><td className="px-3 py-3 font-mono text-[10.5px] text-ink-secondary">{item.sku || item.mpn || "—"}</td><td className="px-3 py-3"><p className="max-w-36 truncate text-xs font-medium text-ink-secondary">{item.category.title}</p><p className="mt-0.5 max-w-36 truncate text-[10.5px] text-ink-muted">{item.brand?.title || "No brand"}</p></td><td className="px-3 py-3"><p className="text-[13px] font-semibold text-ink">{money(variant?.salePrice ?? variant?.price)}</p>{variant?.salePrice ? <p className="mt-0.5 text-[10.5px] text-ink-muted line-through">{money(variant.price)}</p> : null}</td><td className="px-3 py-3 text-[13px] font-semibold text-ink">{priceIncludingTax(item, variant?.salePrice ?? variant?.price)}</td><td className="px-3 py-3"><Stock item={item} /></td><td className="px-3 py-3 text-xs font-medium text-ink-secondary">{item._count.variants}</td><td className="px-3 py-3"><StatusSelect item={item} disabled={disabled} onChange={(nextStatus) => onStatus(item.id, nextStatus)} /></td><td className="px-3 py-3 text-xs text-ink-muted">{new Date(item.updatedAt).toLocaleDateString("en-GB")}</td><td className="px-3 py-3"><RowActions item={item} disabled={disabled} onStatus={(nextStatus) => onStatus(item.id, nextStatus)} onEdit={() => onEdit(item)} onDuplicate={() => onDuplicate(item.id)} onDelete={() => onDelete(item.id)} /></td></tr>; })}</tbody></table></div>;
+function ProductSortHeader({ label, column, activeColumn, direction, onSort }: { label: string; column: ProductSortKey; activeColumn: ProductSortKey; direction: SortDirection; onSort: (column: ProductSortKey) => void }) {
+  const active = column === activeColumn;
+  const Icon = active ? direction === "asc" ? ArrowUp : ArrowDown : ArrowUpDown;
+  return <th className="px-3 py-3"><button type="button" onClick={() => onSort(column)} className={`inline-flex items-center gap-1.5 rounded-sm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-tint-border ${active ? "text-ink" : "text-ink-muted"}`} aria-label={`Sort by ${label}`}><span>{label}</span><Icon className="h-3.5 w-3.5" aria-hidden="true" /></button></th>;
+}
+
+function ProductPagination({ meta, page, perPage, onPageChange, onPerPageChange }: { meta: ProductListMeta; page: number; perPage: number; onPageChange: (page: number) => void; onPerPageChange: (perPage: number) => void }) {
+  return <div className="flex flex-col gap-3 border-t border-border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 text-xs text-ink-muted"><span>Rows per page</span><select value={perPage} onChange={(event) => onPerPageChange(Number(event.target.value))} className="h-8 rounded-md border border-border-strong bg-surface px-2 text-xs text-ink-secondary outline-none focus:border-accent-strong"><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select><span className="ml-2">{(meta.page - 1) * meta.perPage + 1}–{Math.min(meta.page * meta.perPage, meta.total)} of {meta.total}</span></div><div className="flex items-center gap-2"><button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-ink-secondary hover:bg-neutral-tint disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button><span className="min-w-20 text-center text-xs font-medium text-ink-secondary">Page {meta.page} of {Math.max(meta.totalPages, 1)}</span><button type="button" disabled={page >= meta.totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-ink-secondary hover:bg-neutral-tint disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div></div>;
+}
+
+function DesktopTable({ items, selected, disabled, sortKey, sortDirection, onSort, onToggleAll, onToggle, onStatus, onEdit, onDuplicate, onDelete, footer }: { items: ProductListItem[]; selected: Set<number>; disabled: boolean; sortKey: ProductSortKey; sortDirection: SortDirection; onSort: (key: ProductSortKey) => void; onToggleAll: () => void; onToggle: (id: number) => void; onStatus: (id: number, status: ProductStatus) => void; onEdit: (item: ProductListItem) => void; onDuplicate: (id: number) => void; onDelete: (id: number) => void; footer: ReactNode }) {
+  return <div className="mt-4 hidden overflow-hidden rounded-lg border border-border bg-surface shadow-card md:block"><div className="overflow-x-auto"><table className="w-full min-w-[980px] border-collapse"><thead><tr className="border-b border-border bg-canvas text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-muted"><th className="w-12 px-4 py-3"><input type="checkbox" checked={selected.size === items.length} onChange={onToggleAll} aria-label="Select all products" className="h-4 w-4 accent-ink" /></th><ProductSortHeader label="ID" column="id" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Product" column="title" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Reference" column="reference" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Category" column="category" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Price (excl.)" column="priceExcl" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Price (incl.)" column="priceIncl" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Quantity" column="quantity" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Variants" column="variants" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Status" column="status" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><ProductSortHeader label="Updated" column="updatedAt" activeColumn={sortKey} direction={sortDirection} onSort={onSort} /><th className="w-14 px-3 py-3" /></tr></thead><tbody>{items.map((item) => { const variant = item.variants[0]; return <tr key={item.id} className="border-b border-border last:border-0 hover:bg-canvas/70"><td className="px-4 py-3"><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Select ${item.title}`} className="h-4 w-4 accent-ink" /></td><td className="px-2 py-3 text-xs font-semibold text-ink-secondary">{item.id}</td><td className="px-2 py-3"><div className="flex min-w-60 items-center gap-3"><ProductThumb item={item} /><div className="min-w-0"><p className="max-w-72 truncate text-[13px] font-semibold text-ink">{item.title}</p><p className="mt-0.5 font-mono text-[10.5px] text-ink-muted">{item.sku || item.mpn || `ID-${item.id}`}</p></div></div></td><td className="px-3 py-3 font-mono text-[10.5px] text-ink-secondary">{item.sku || item.mpn || "—"}</td><td className="px-3 py-3"><p className="max-w-36 truncate text-xs font-medium text-ink-secondary">{item.category.title}</p><p className="mt-0.5 max-w-36 truncate text-[10.5px] text-ink-muted">{item.brand?.title || "No brand"}</p></td><td className="px-3 py-3"><p className="text-[13px] font-semibold text-ink">{money(variant?.salePrice ?? variant?.price)}</p>{variant?.salePrice ? <p className="mt-0.5 text-[10.5px] text-ink-muted line-through">{money(variant.price)}</p> : null}</td><td className="px-3 py-3 text-[13px] font-semibold text-ink">{priceIncludingTax(item, variant?.salePrice ?? variant?.price)}</td><td className="px-3 py-3"><Stock item={item} /></td><td className="px-3 py-3 text-xs font-medium text-ink-secondary">{item._count.variants}</td><td className="px-3 py-3"><StatusSelect item={item} disabled={disabled} onChange={(nextStatus) => onStatus(item.id, nextStatus)} /></td><td className="px-3 py-3 text-xs text-ink-muted">{new Date(item.updatedAt).toLocaleDateString("en-GB")}</td><td className="px-3 py-3"><RowActions item={item} disabled={disabled} onStatus={(nextStatus) => onStatus(item.id, nextStatus)} onEdit={() => onEdit(item)} onDuplicate={() => onDuplicate(item.id)} onDelete={() => onDelete(item.id)} /></td></tr>; })}</tbody></table></div>{footer}</div>;
 }
 
 function MobileList({ items, disabled, onStatus, onEdit, onDuplicate, onDelete }: { items: ProductListItem[]; disabled: boolean; onStatus: (id: number, status: ProductStatus) => void; onEdit: (item: ProductListItem) => void; onDuplicate: (id: number) => void; onDelete: (id: number) => void }) {
@@ -315,43 +331,6 @@ function BulkBar({ count, disabled, onUpdate, onClear }: { count: number; disabl
 function LoadingState() { return <div className="mt-4 overflow-hidden rounded-lg border border-border bg-surface">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="flex items-center gap-3 border-b border-border p-3 last:border-0"><div className="h-11 w-11 animate-pulse rounded-md bg-neutral-tint" /><div className="flex-1"><div className="h-3 w-48 max-w-full animate-pulse rounded bg-neutral-tint" /><div className="mt-2 h-2.5 w-28 animate-pulse rounded bg-neutral-tint" /></div><div className="hidden h-5 w-20 animate-pulse rounded-full bg-neutral-tint sm:block" /></div>)}</div>; }
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) { return <div className="mt-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-danger-tint-border bg-danger-tint p-8 text-center"><AlertTriangle className="h-7 w-7 text-danger" /><h2 className="mt-4 text-[13.5px] font-semibold text-ink">Products could not be loaded</h2><p className="mt-1 max-w-md text-[13px] leading-5 text-danger-tint-ink">{message}</p><button type="button" onClick={onRetry} className="mt-5 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-[13px] font-semibold text-white"><RefreshCw className="h-4 w-4" />Try again</button></div>; }
 function EmptyState({ filtered, onClear, onImport }: { filtered: boolean; onClear: () => void; onImport: () => void }) { return <div className="mt-6 flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-border-strong bg-surface p-8 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent-tint text-accent-strong"><Package className="h-6 w-6" /></span><h2 className="mt-4 text-[13.5px] font-semibold text-ink">{filtered ? "No products match these filters" : "Your catalogue is empty"}</h2><p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-muted">{filtered ? "Try another search, status, category, or brand." : "Import your product catalogue to begin managing pricing and stock."}</p><button type="button" onClick={filtered ? onClear : onImport} className="mt-5 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-[13px] font-semibold text-white">{filtered ? <RefreshCw className="h-4 w-4" /> : <Upload className="h-4 w-4" />}{filtered ? "Clear filters" : "Import products"}</button></div>; }
-
-function ProductDialog({ product, creationType, categories, brands, onClose, onComplete }: { product: ProductListItem | null; creationType: ProductCreationType; categories: CatalogOption[]; brands: CatalogOption[]; onClose: () => void; onComplete: (message: string) => void }) {
-  const [title, setTitle] = useState(product?.title ?? "");
-  const [slug, setSlug] = useState(product?.slug ?? "");
-  const [sku, setSku] = useState(product?.sku ?? "");
-  const [categoryId, setCategoryId] = useState(String(product?.category.id ?? categories[0]?.id ?? ""));
-  const [brandId, setBrandId] = useState(String(product?.brand?.id ?? ""));
-  const [status, setStatus] = useState<ProductStatus>(product?.status ?? "DRAFT");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  function updateTitle(value: string) {
-    setTitle(value);
-    if (!product && (!slug || slug === title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))) {
-      setSlug(value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
-    }
-  }
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!title.trim() || !slug.trim() || !categoryId) { setError("Name, slug, and category are required."); return; }
-    setSaving(true); setError("");
-    try {
-      const response = await fetch(product ? `/api/products/${product.id}` : "/api/products", {
-        method: product ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), slug: slug.trim(), categoryId: Number(categoryId), ...(sku.trim() ? { sku: sku.trim() } : {}), ...(brandId ? { brandId: Number(brandId) } : {}), status }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(errorMessage(payload, `Product could not be ${product ? "updated" : "created"}.`));
-      onComplete(`Product ${product ? "updated" : "created"}.`);
-    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Product could not be saved."); }
-    finally { setSaving(false); }
-  }
-
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-sidebar/60 sm:items-center sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onClose(); }}><section role="dialog" aria-modal="true" aria-labelledby="product-dialog-title" className="w-full rounded-t-xl bg-surface shadow-panel sm:max-w-xl sm:rounded-xl"><header className="flex items-start gap-4 border-b border-border px-5 py-4"><div className="flex-1"><h2 id="product-dialog-title" className="text-[13.5px] font-semibold text-ink">{product ? "Edit product" : creationType === "variants" ? "Add product with variants" : "Add standard product"}</h2><p className="mt-1 text-xs text-ink-muted">{product ? "Update the core catalogue identity." : creationType === "variants" ? "Create the catalogue record first, then add its RAM, storage, colour or other configurations." : "Create a single physical catalogue item. Pricing and stock are managed after creation."}</p></div><button type="button" onClick={onClose} disabled={saving} aria-label="Close product editor" className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted hover:bg-neutral-tint"><X className="h-4 w-4" /></button></header><form onSubmit={submit} className="p-5"><div className="grid gap-4 sm:grid-cols-2"><label className="sm:col-span-2 text-[13px] font-semibold text-ink-secondary">Product name<input value={title} onChange={(event) => updateTitle(event.target.value)} maxLength={255} autoFocus className="mt-2 h-10 w-full rounded-md border border-border-strong px-3 text-[13px] font-normal text-ink outline-none focus:border-accent-strong" /></label><label className="text-[13px] font-semibold text-ink-secondary">Slug<input value={slug} onChange={(event) => setSlug(event.target.value)} maxLength={255} className="mt-2 h-10 w-full rounded-md border border-border-strong px-3 font-mono text-xs font-normal text-ink outline-none focus:border-accent-strong" /></label><label className="text-[13px] font-semibold text-ink-secondary">Reference / SKU<input value={sku} onChange={(event) => setSku(event.target.value)} maxLength={255} className="mt-2 h-10 w-full rounded-md border border-border-strong px-3 text-[13px] font-normal text-ink outline-none focus:border-accent-strong" /></label><label className="text-[13px] font-semibold text-ink-secondary">Category<select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-[13px] font-normal text-ink outline-none"><option value="">Choose category</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-[13px] font-semibold text-ink-secondary">Brand<select value={brandId} onChange={(event) => setBrandId(event.target.value)} className="mt-2 h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-[13px] font-normal text-ink outline-none"><option value="">No brand</option>{brands.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-[13px] font-semibold text-ink-secondary">Status<select value={status} onChange={(event) => setStatus(event.target.value as ProductStatus)} className="mt-2 h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-[13px] font-normal text-ink outline-none"><option value="DRAFT">Draft</option><option value="ACTIVE">Active</option><option value="ARCHIVED">Archived</option></select></label></div>{error ? <p role="alert" className="mt-4 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border">{error}</p> : null}<div className="mt-6 flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={onClose} disabled={saving} className="rounded-md border border-border px-4 py-2 text-[13px] font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving} className="inline-flex min-w-28 items-center justify-center gap-2 rounded-md bg-ink px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}{saving ? "Saving…" : product ? "Save changes" : "Add product"}</button></div></form></section></div>;
-}
 
 function ImportDialog({ onClose, onComplete }: { onClose: () => void; onComplete: (message: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null); const [file, setFile] = useState<File | null>(null); const [uploading, setUploading] = useState(false); const [error, setError] = useState("");

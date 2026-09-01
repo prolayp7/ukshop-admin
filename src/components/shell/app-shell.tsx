@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { DesktopSidebar, MobileSidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
+import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -15,6 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-canvas">
+      <SessionExpiryGuard />
       <DesktopSidebar />
       <MobileSidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
