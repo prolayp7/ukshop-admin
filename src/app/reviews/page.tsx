@@ -1,12 +1,5 @@
-import { Star } from "lucide-react";
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { ReviewsListing } from "@/components/reviews/reviews-listing";
 
 export default function ReviewsPage() {
-  return (
-    <ComingSoon
-      icon={Star}
-      title="Reviews"
-      description="Moderation and approval for customer reviews and ratings — built next on this same system."
-    />
-  );
+  return <ReviewsListing />;
 }

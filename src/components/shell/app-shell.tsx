@@ -14,10 +14,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
+  // The Homepage page's live preview panel wants as much width as it can
+  // get, so the sidebar collapses to icons-only there rather than a manual
+  // toggle nobody would remember to use.
+  const sidebarCollapsed = pathname === "/homepage";
+
   return (
     <div className="flex min-h-screen bg-canvas">
       <SessionExpiryGuard />
-      <DesktopSidebar />
+      <DesktopSidebar collapsed={sidebarCollapsed} />
       <MobileSidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">

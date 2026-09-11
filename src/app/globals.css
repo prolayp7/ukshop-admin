@@ -9,36 +9,36 @@
   --font-mono: var(--font-geist-mono);
 
   /* Canvas & surfaces */
-  --color-canvas: #f4f6f9;
+  --color-canvas: #f5f5f6;
   --color-surface: #ffffff;
-  --color-sidebar: #0a2540;
-  --color-sidebar-hover: #123a5e;
-  --color-sidebar-active: #0b64d6;
+  --color-sidebar: #17181b;
+  --color-sidebar-hover: #232427;
+  --color-sidebar-active: #e4141c;
 
   /* Borders */
-  --color-border: #e2e6ec;
-  --color-border-strong: #c8d3e0;
-  --color-sidebar-border: #244867;
+  --color-border: #e4e4e7;
+  --color-border-strong: #cbcbd0;
+  --color-sidebar-border: #2c2d31;
 
   /* Ink (text) */
-  --color-ink: #101827;
-  --color-ink-secondary: #4b5565;
-  --color-ink-muted: #6b7585;
-  --color-ink-faint: #93a0b1;
-  --color-sidebar-ink: #c7d6e6;
+  --color-ink: #18181b;
+  --color-ink-secondary: #4b4b52;
+  --color-ink-muted: #6c6c74;
+  --color-ink-faint: #97979f;
+  --color-sidebar-ink: #c9cdd3;
   --color-sidebar-ink-hover: #ffffff;
   --color-sidebar-ink-active: #ffffff;
-  --color-sidebar-label: #7fb2f0;
+  --color-sidebar-label: #ff9da1;
 
-  /* Highstreet retail blue — navigation, focus and primary emphasis */
-  --color-accent: #0b64d6;
-  --color-accent-strong: #0950ad;
+  /* RigForge red — navigation, focus and primary emphasis */
+  --color-accent: #e4141c;
+  --color-accent-strong: #a30f14;
   --color-accent-ink: #ffffff;
-  --color-accent-tint: #e8f1fd;
-  --color-accent-tint-border: #bdd5f5;
-  --color-accent-tint-ink: #0950ad;
+  --color-accent-tint: #fdeaea;
+  --color-accent-tint-border: #f3bdc0;
+  --color-accent-tint-ink: #a30f14;
 
-  /* Highstreet orange — reserved for attention counts and highlights */
+  /* RigForge amber — reserved for attention counts and highlights */
   --color-highlight: #ff8a00;
   --color-highlight-strong: #d96f00;
   --color-highlight-ink: #2a1400;
@@ -57,13 +57,13 @@
   --color-danger-tint-border: #efbdc5;
   --color-danger-tint-ink: #a7192d;
 
-  --color-neutral-tint: #eef1f5;
-  --color-neutral-tint-ink: #4b5565;
+  --color-neutral-tint: #eeeeef;
+  --color-neutral-tint-ink: #4b4b52;
 
-  --shadow-card: 0 1px 2px rgb(16 24 39 / 0.06), 0 6px 18px -8px rgb(16 24 39 / 0.12);
-  --shadow-panel: 0 18px 48px -18px rgb(10 37 64 / 0.32);
-  --background: #f4f6f9;
-  --foreground: #101827;
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.06), 0 6px 18px -8px rgb(24 24 27 / 0.12);
+  --shadow-panel: 0 18px 48px -18px rgb(23 24 27 / 0.35);
+  --background: #f5f5f6;
+  --foreground: #18181b;
   --card: #ffffff;
   --card-foreground: #101827;
   --popover: #ffffff;

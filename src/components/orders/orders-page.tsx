@@ -3,19 +3,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  Banknote,
+  Ban,
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
-  CirclePoundSterling,
+  Clock,
   Download,
   Eye,
   LoaderCircle,
+  Mail,
+  MapPin,
+  Package,
   PackageCheck,
+  PackageOpen,
+  Phone,
   RefreshCw,
   Search,
   ShoppingCart,
+  Truck,
+  Undo2,
   X,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -60,14 +69,16 @@ type OrderDetail = Order & {
   trackingCarrier?: string | null;
   trackingNumber?: string | null;
   shippingMethod?: { title: string; carrier: string } | null;
-  items: Array<{ id: number; titleSnapshot: string; variantTitleSnapshot: string; skuSnapshot?: string | null; quantity: number; unitPrice: string; subtotal: string }>;
+  items: Array<{ id: number; titleSnapshot: string; variantTitleSnapshot: string; skuSnapshot?: string | null; quantity: number; unitPrice: string; subtotal: string; product?: { category?: { title: string } | null } | null }>;
+  statusHistory: Array<{ id: number; fromStatus: OrderStatus | null; toStatus: OrderStatus; note: string | null; changedByAdmin: { name: string } | null; createdAt: string }>;
+  paymentTransactions: Array<{ provider: string; status: string }>;
 };
 
 type Meta = { page: number; perPage: number; total: number; totalPages: number };
-type Summary = { totalOrders: number; awaitingPayment: number; failedPayments: number; revenue: number; averageOrderValue: number };
+type Summary = { totalOrders: number; awaitingPayment: number; failedPayments: number; revenue: number; averageOrderValue: number; processing: number; shipped: number; delivered: number; cancelled: number; failed: number; returnsCount: number };
 
 const emptyMeta: Meta = { page: 1, perPage: 20, total: 0, totalPages: 0 };
-const emptySummary: Summary = { totalOrders: 0, awaitingPayment: 0, failedPayments: 0, revenue: 0, averageOrderValue: 0 };
+const emptySummary: Summary = { totalOrders: 0, awaitingPayment: 0, failedPayments: 0, revenue: 0, averageOrderValue: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, failed: 0, returnsCount: 0 };
 const orderStatuses: OrderStatus[] = ["PENDING", "AWAITING_PAYMENT", "PROCESSING", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED", "FAILED"];
 
 function unwrap<T>(payload: unknown): T {
@@ -148,9 +159,10 @@ export function OrdersPage() {
       ]);
       const [ordersPayload, summaryPayload] = await Promise.all([ordersResponse.json(), summaryResponse.json()]);
       if (!ordersResponse.ok) throw new Error(message(ordersPayload, "Orders could not be loaded."));
-      const ordersData = unwrap<{ items: Order[]; meta: Meta }>(ordersPayload);
-      setItems(ordersData.items ?? []);
-      setMeta(ordersData.meta ?? emptyMeta);
+      // The paginated-list response shape is { data: Order[], meta }, not
+      // { data: { items, meta } } - meta sits alongside data, not inside it.
+      setItems((ordersPayload as { data?: Order[] }).data ?? []);
+      setMeta((ordersPayload as { meta?: Meta }).meta ?? emptyMeta);
       if (summaryResponse.ok) setSummary(unwrap<Summary>(summaryPayload));
       setSelected(new Set());
     } catch (loadError) {
@@ -191,7 +203,7 @@ export function OrdersPage() {
       const response = await fetch(`/api/orders?${query(1, 100)}`);
       const payload = await response.json();
       if (!response.ok) throw new Error(message(payload, "The export could not be prepared."));
-      const exported = unwrap<{ items: Order[] }>(payload).items ?? [];
+      const exported = (payload as { data?: Order[] }).data ?? [];
       const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
       const rows = [
         ["ID", "Reference", "Customer", "Email", "Total", "Payment", "Status", "Country", "Placed"],
@@ -210,11 +222,15 @@ export function OrdersPage() {
 
   const allSelected = items.length > 0 && selected.size === items.length;
   const filtersActive = Boolean(searchInput || status || paymentStatus || dateFrom || dateTo);
-  const kpis = useMemo(() => [
-    { label: "Total orders", value: summary.totalOrders.toLocaleString("en-GB"), icon: ShoppingCart, note: "All time" },
-    { label: "Awaiting payment", value: summary.awaitingPayment.toLocaleString("en-GB"), icon: Banknote, note: `${summary.failedPayments} failed payments` },
-    { label: "Average order value", value: money(summary.averageOrderValue), icon: CirclePoundSterling, note: "All orders" },
-    { label: "Processed revenue", value: money(summary.revenue), icon: PackageCheck, note: "Processing through delivered" },
+  const statusCards = useMemo(() => [
+    { label: "Total Order", value: summary.totalOrders, icon: Package, bg: "bg-blue-100", iconTone: "text-blue-700" },
+    { label: "Pending Payment", value: summary.awaitingPayment, icon: Clock, bg: "bg-amber-100", iconTone: "text-amber-700" },
+    { label: "Processing", value: summary.processing, icon: PackageOpen, bg: "bg-teal-100", iconTone: "text-teal-700" },
+    { label: "Shipped", value: summary.shipped, icon: Truck, bg: "bg-orange-100", iconTone: "text-orange-700" },
+    { label: "Delivered", value: summary.delivered, icon: PackageCheck, bg: "bg-pink-100", iconTone: "text-pink-700" },
+    { label: "Cancel", value: summary.cancelled, icon: Ban, bg: "bg-amber-200", iconTone: "text-amber-800" },
+    { label: "Returned", value: summary.returnsCount, icon: Undo2, bg: "bg-lime-100", iconTone: "text-lime-700" },
+    { label: "Failed", value: summary.failed, icon: XCircle, bg: "bg-sky-100", iconTone: "text-sky-700" },
   ], [summary]);
 
   return <div className="pb-6">
@@ -223,7 +239,7 @@ export function OrdersPage() {
       <div className="flex gap-2"><button type="button" onClick={() => void load()} disabled={loading} className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-3.5 text-[13px] font-semibold text-ink-secondary shadow-card hover:bg-neutral-tint disabled:opacity-50"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Refresh</button><button type="button" onClick={() => void exportOrders()} className="inline-flex h-10 items-center gap-2 rounded-md bg-ink px-4 text-[13px] font-semibold text-white hover:bg-[#1d2939]"><Download className="h-4 w-4" />Export orders</button></div>
     </div>
 
-    <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{kpis.map(({ label: kpiLabel, value, icon: Icon, note }) => <div key={kpiLabel} className="rounded-xl border border-border bg-surface p-4 shadow-card"><div className="flex items-start justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">{kpiLabel}</p><p className="mt-2 text-xl font-semibold tabular-nums text-ink">{value}</p><p className="mt-1 text-[11px] text-ink-muted">{note}</p></div><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-tint text-ink-secondary"><Icon className="h-[18px] w-[18px]" /></span></div></div>)}</div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{statusCards.map(({ label: cardLabel, value, icon: Icon, bg, iconTone }) => <div key={cardLabel} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card"><span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm", bg, iconTone)}><Icon className="h-5 w-5" /></span><div><p className="text-[12px] font-medium text-ink-secondary">{cardLabel}</p><p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{value.toLocaleString("en-GB")}</p></div></div>)}</div>
 
     <section className="mt-5 overflow-hidden rounded-xl border border-border bg-surface shadow-card">
       <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center">
@@ -261,7 +277,50 @@ function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: () => voi
   const [error, setError] = useState("");
   useEffect(() => { const timer = window.setTimeout(async () => { try { const response = await fetch(`/api/orders/${id}`); const payload = await response.json(); if (!response.ok) throw new Error(message(payload, "Order details could not be loaded.")); setOrder(unwrap<OrderDetail>(payload)); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Order details could not be loaded."); } }, 0); return () => window.clearTimeout(timer); }, [id]);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; document.addEventListener("keydown", close); return () => document.removeEventListener("keydown", close); }, [onClose]);
-  return <div className="fixed inset-0 z-50"><button type="button" onClick={onClose} aria-label="Close order details" className="absolute inset-0 bg-slate-950/40" /><aside role="dialog" aria-modal="true" aria-labelledby="order-detail-title" className="absolute inset-y-0 right-0 w-full max-w-xl overflow-y-auto bg-surface shadow-panel"><div className="sticky top-0 z-10 flex items-start justify-between border-b border-border bg-surface px-5 py-4"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Order details</p><h2 id="order-detail-title" className="mt-1 font-mono text-[14.5px] font-semibold text-ink">{order?.orderNumber ?? `Order ${id}`}</h2></div><button type="button" onClick={onClose} aria-label="Close order details" className="flex h-9 w-9 items-center justify-center rounded-md text-ink-muted hover:bg-neutral-tint"><X className="h-5 w-5" /></button></div>{error ? <div className="m-5 rounded-md bg-danger-tint p-4 text-xs text-danger-tint-ink">{error}</div> : !order ? <LoaderCircle className="mx-auto mt-24 h-6 w-6 animate-spin text-ink-muted" /> : <div className="space-y-6 p-5"><div className="flex flex-wrap items-center gap-3"><span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", statusTone(order.status))}>{label(order.status)}</span><span className={cn("text-xs font-semibold", paymentTone(order.paymentStatus))}>{label(order.paymentStatus)}</span><select value={order.status} onChange={(event) => { const value = event.target.value as OrderStatus; setOrder({ ...order, status: value }); onStatus(value); }} aria-label="Change order status" className="ml-auto h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs"><option value={order.status}>Change status…</option>{orderStatuses.filter((value) => value !== order.status).map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></div><section><h3 className="text-[13px] font-semibold text-ink">Customer and delivery</h3><div className="mt-3 grid gap-3 rounded-lg bg-canvas p-4 text-xs sm:grid-cols-2"><div><p className="text-ink-muted">Customer</p><p className="mt-1 font-semibold text-ink">{order.shippingFullName}</p><p className="mt-1 text-ink-secondary">{order.email}</p></div><div><p className="text-ink-muted">Delivery address</p><p className="mt-1 leading-5 text-ink-secondary">{order.shippingLine1}{order.shippingLine2 ? <><br />{order.shippingLine2}</> : null}<br />{order.shippingCity}{order.shippingCounty ? `, ${order.shippingCounty}` : ""}<br />{order.shippingPostcode}, {order.shippingCountry}</p></div></div></section><section><h3 className="text-[13px] font-semibold text-ink">Items ({order.items.length})</h3><div className="mt-3 divide-y divide-border rounded-lg border border-border">{order.items.map((item) => <div key={item.id} className="flex gap-3 p-3"><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-ink">{item.titleSnapshot}</p><p className="mt-1 font-mono text-[10.5px] text-ink-muted">{item.skuSnapshot || item.variantTitleSnapshot}</p></div><div className="text-right"><p className="text-xs font-semibold tabular-nums">{money(item.subtotal)}</p><p className="mt-1 text-[10.5px] text-ink-muted">{item.quantity} × {money(item.unitPrice)}</p></div></div>)}</div></section><section><h3 className="text-[13px] font-semibold text-ink">Order total</h3><dl className="mt-3 space-y-2 rounded-lg bg-canvas p-4 text-xs"><Total label="Subtotal" value={order.subtotal} /><Total label="Discount" value={order.discountTotal} negative /><Total label="Delivery" value={order.shippingCharge} /><Total label="VAT" value={order.vatTotal} /><div className="flex justify-between border-t border-border pt-3 text-[13px] font-semibold"><dt>Total</dt><dd className="tabular-nums">{money(order.total)}</dd></div></dl></section>{order.trackingNumber ? <section><h3 className="text-[13px] font-semibold text-ink">Tracking</h3><p className="mt-2 font-mono text-xs text-ink-secondary">{order.trackingCarrier || "Carrier"} · {order.trackingNumber}</p></section> : null}</div>}</aside></div>;
+
+  const totalItems = order?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const deliveredEntry = order?.statusHistory.find((entry) => entry.toStatus === "DELIVERED");
+  const initials = order ? order.shippingFullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() : "";
+  const addressLine = order ? [order.shippingLine1, order.shippingLine2, order.shippingCity, order.shippingCounty, order.shippingPostcode, order.shippingCountry].filter(Boolean).join(", ") : "";
+
+  return <div className="fixed inset-0 z-50 overflow-y-auto">
+    <button type="button" onClick={onClose} aria-label="Close order details" className="fixed inset-0 bg-slate-950/40" />
+    <div className="relative mx-auto my-6 w-full max-w-5xl px-4">
+      <div role="dialog" aria-modal="true" aria-labelledby="order-detail-title" className="overflow-hidden rounded-xl bg-surface shadow-panel">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-4">
+          <div><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Order details</p><h2 id="order-detail-title" className="mt-1 font-mono text-[15px] font-semibold text-ink">{order?.orderNumber ?? `Order ${id}`}</h2></div>
+          <button type="button" onClick={onClose} aria-label="Close order details" className="flex h-9 w-9 items-center justify-center rounded-md text-ink-muted hover:bg-neutral-tint"><X className="h-5 w-5" /></button>
+        </div>
+        {error ? <div className="m-6 rounded-md bg-danger-tint p-4 text-xs text-danger-tint-ink">{error}</div> : !order ? <div className="p-12"><LoaderCircle className="mx-auto h-6 w-6 animate-spin text-ink-muted" /></div> : <div className="space-y-6 p-6">
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-mono text-lg font-semibold text-ink">#{order.orderNumber}</span>
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", order.paymentStatus === "PAID" ? "bg-positive-tint text-positive-tint-ink ring-positive-tint-border" : "bg-neutral-tint text-ink-secondary ring-border-strong")}>{label(order.paymentStatus)}</span>
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", statusTone(order.status))}>{label(order.status)}</span>
+            <select value={order.status} onChange={(event) => { const value = event.target.value as OrderStatus; setOrder({ ...order, status: value }); onStatus(value); }} aria-label="Change order status" className="ml-auto h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs"><option value={order.status}>Change status…</option>{orderStatuses.filter((value) => value !== order.status).map((value) => <option key={value} value={value}>{label(value)}</option>)}</select>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-accent-tint p-4"><div className="flex items-center gap-2 text-xs font-semibold text-accent-tint-ink"><CalendarDays className="h-4 w-4" />Order Date</div><p className="mt-2 text-base font-semibold text-ink">{new Date(order.placedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p></div>
+            <div className="rounded-xl bg-neutral-tint p-4"><div className="flex items-center gap-2 text-xs font-semibold text-ink-secondary"><Package className="h-4 w-4" />Total Items</div><p className="mt-2 text-base font-semibold text-ink">{totalItems} pcs</p></div>
+            <div className="rounded-xl bg-positive-tint p-4"><div className="flex items-center gap-2 text-xs font-semibold text-positive-tint-ink"><Truck className="h-4 w-4" />Delivery Date</div><p className="mt-2 text-base font-semibold text-ink">{deliveredEntry ? new Date(deliveredEntry.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not yet delivered"}</p></div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+            <div className="overflow-hidden rounded-xl border border-border"><div className="overflow-x-auto"><table className="w-full min-w-[480px] text-left text-xs"><thead className="border-b border-border bg-canvas text-[10.5px] uppercase tracking-[0.06em] text-ink-muted"><tr><th className="px-3 py-2.5 font-semibold">Product</th><th className="px-3 py-2.5 font-semibold">Category</th><th className="px-3 py-2.5 text-right font-semibold">Qty</th><th className="px-3 py-2.5 text-right font-semibold">Price</th><th className="px-3 py-2.5 text-right font-semibold">Subtotal</th></tr></thead><tbody className="divide-y divide-border">{order.items.map((item) => <tr key={item.id}><td className="px-3 py-3"><p className="font-semibold text-ink">{item.titleSnapshot}</p><p className="mt-0.5 font-mono text-[10.5px] text-ink-muted">{item.skuSnapshot || item.variantTitleSnapshot}</p></td><td className="px-3 py-3 text-ink-secondary">{item.product?.category?.title ?? "—"}</td><td className="px-3 py-3 text-right tabular-nums text-ink-secondary">{item.quantity}</td><td className="px-3 py-3 text-right tabular-nums text-ink-secondary">{money(item.unitPrice)}</td><td className="px-3 py-3 text-right tabular-nums font-semibold text-ink">{money(item.subtotal)}</td></tr>)}</tbody></table></div></div>
+
+            <div className="rounded-xl border border-border bg-canvas p-4"><h3 className="text-[13px] font-semibold text-ink">Order Summary</h3><dl className="mt-3 space-y-2 text-xs"><Total label="Sub-Total" value={order.subtotal} /><Total label="Discount" value={order.discountTotal} negative /><Total label="Delivery" value={order.shippingCharge} /><Total label="VAT" value={order.vatTotal} /><div className="flex justify-between border-t border-border pt-3 text-[13px] font-semibold text-ink"><dt>Total</dt><dd className="tabular-nums">{money(order.total)}</dd></div></dl>{order.paymentTransactions[0] ? <p className="mt-3 rounded-md bg-surface px-3 py-2 text-[11px] text-ink-secondary ring-1 ring-inset ring-border">Paid via {order.paymentTransactions[0].provider}</p> : null}</div>
+          </div>
+
+          <section><h3 className="text-[13px] font-semibold text-ink">Customer Information</h3><div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-canvas p-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent-tint-ink">{initials}</span><div className="min-w-0"><p className="text-[13px] font-semibold text-ink">{order.shippingFullName}</p><div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-secondary"><span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-ink-faint" />{order.email}</span>{order.phone ? <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-ink-faint" />{order.phone}</span> : null}<span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-ink-faint" />{addressLine}</span></div></div></div></section>
+
+          <section><h3 className="text-[13px] font-semibold text-ink">Order Tracking</h3><div className="mt-3">{order.statusHistory.map((entry, index) => { const current = index === order.statusHistory.length - 1; return <div key={entry.id} className="relative flex gap-3 pb-6 last:pb-0">{index < order.statusHistory.length - 1 ? <span className="absolute left-[11px] top-6 bottom-0 w-px bg-border" /> : null}<span className={cn("z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", current ? "bg-positive text-white" : "bg-neutral-tint text-ink-muted")}>{current ? <Check className="h-3.5 w-3.5" /> : <span className="h-2 w-2 rounded-full bg-current" />}</span><div className="flex-1 pt-0.5"><div className="flex items-baseline justify-between gap-3"><p className="text-xs font-semibold text-ink">{label(entry.toStatus)}</p><p className="shrink-0 text-[10.5px] text-ink-muted">{new Date(entry.createdAt).toLocaleDateString("en-GB")}, {new Date(entry.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p></div><p className="mt-0.5 text-[11px] text-ink-muted">{entry.changedByAdmin ? `Changed by ${entry.changedByAdmin.name}` : "Automatic update"}{entry.note ? ` · ${entry.note}` : ""}</p></div></div>; })}{!order.statusHistory.length ? <p className="text-xs text-ink-muted">No status history yet.</p> : null}</div></section>
+
+          {order.trackingNumber ? <section><h3 className="text-[13px] font-semibold text-ink">Tracking</h3><p className="mt-2 font-mono text-xs text-ink-secondary">{order.trackingCarrier || "Carrier"} · {order.trackingNumber}</p></section> : null}
+        </div>}
+      </div>
+    </div>
+  </div>;
 }
 
 function Total({ label: totalLabel, value, negative = false }: { label: string; value: string; negative?: boolean }) { return <div className="flex justify-between"><dt className="text-ink-muted">{totalLabel}</dt><dd className="tabular-nums text-ink-secondary">{negative && Number(value) > 0 ? "−" : ""}{money(value)}</dd></div>; }
