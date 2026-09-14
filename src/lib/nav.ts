@@ -15,7 +15,6 @@ import {
   Newspaper,
   Images,
   BarChart3,
-  Palette,
   Settings,
   CreditCard,
   RotateCcw,
@@ -92,7 +91,6 @@ export const navGroups: NavGroup[] = [
     label: "System",
     items: [
       { label: "Admin users", href: "/admin-users", icon: ShieldCheck },
-      { label: "Design", href: "/design", icon: Palette },
       { label: "Settings", href: "/settings", icon: Settings },
     ],
   },

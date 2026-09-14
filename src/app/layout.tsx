@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 
 import { AppShell } from "@/components/shell/app-shell";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "UK Computer Shop · Admin",
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <TooltipProvider delay={250}>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
+        <Toaster />
       </body>
     </html>
   );
