@@ -26,6 +26,7 @@ import {
   HelpCircle,
   ShieldCheck,
   Home,
+  Mail,
 } from "lucide-react";
 
 export type NavItem = {
@@ -79,6 +80,7 @@ export const navGroups: NavGroup[] = [
       { label: "Blog", href: "/blog", icon: Newspaper },
       { label: "Merchandising", href: "/merchandising", icon: Megaphone },
       { label: "Menus", href: "/menus", icon: MenuIcon },
+      { label: "Subscribers", href: "/subscribers", icon: Mail },
       { label: "FAQs & support", href: "/support-content", icon: HelpCircle },
       { label: "Media library", href: "/media", icon: Images },
     ],
