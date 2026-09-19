@@ -3,14 +3,14 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { AlertTriangle, ArrowDown, ArrowUp, BookOpen, Compass, ExternalLink, FileSearch, Gamepad2, Gift, Grid3x3, Image as ImageIcon, Images, Laptop, LayoutTemplate, LoaderCircle, Mail, MessageSquareQuote, Newspaper, Percent, RefreshCw, ShieldCheck, Sparkles, Store, Tag, Upload } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, BookOpen, Compass, ExternalLink, FileSearch, Gamepad2, Gift, Grid3x3, Image as ImageIcon, Images, Laptop, LayoutTemplate, LoaderCircle, Mail, MessageSquareQuote, Percent, RefreshCw, ShieldCheck, Sparkles, Store, Tag, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { collectionFromApi } from "@/lib/api-response";
 import { mediaFileUrl, type MediaItem } from "@/lib/media";
 
 const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3002";
 
-type SectionType = "HERO" | "TRUST_STRIP" | "DEALS" | "FEATURED_PRODUCTS" | "NEW_ARRIVALS" | "BRANDS" | "TESTIMONIALS" | "BLOG_HIGHLIGHTS" | "FAQS" | "BANNERS" | "NEWSLETTER" | "CATEGORY_SHOWCASE" | "SHOP_BY_NEED" | "GAMING_SHOWCASE" | "LAPTOP_SHOWCASE" | "BUYING_GUIDES" | "SEO_INTRO";
+type SectionType = "HERO" | "TRUST_STRIP" | "DEALS" | "FEATURED_PRODUCTS" | "NEW_ARRIVALS" | "BRANDS" | "TESTIMONIALS" | "FAQS" | "BANNERS" | "NEWSLETTER" | "CATEGORY_SHOWCASE" | "SHOP_BY_NEED" | "GAMING_SHOWCASE" | "LAPTOP_SHOWCASE" | "BUYING_GUIDES" | "SEO_INTRO";
 type Section = { id: number; type: SectionType; label: string; sortOrder: number; isVisible: boolean; config: Record<string, unknown> };
 type FeaturedSection = { id: number; title: string; slug: string };
 
@@ -25,7 +25,6 @@ const meta: Record<SectionType, { icon: typeof LayoutTemplate; description: stri
   NEW_ARRIVALS: { icon: Sparkles, description: "Automatic — most recently added products." },
   BRANDS: { icon: Store, description: "Automatic — brand logos grid." },
   TESTIMONIALS: { icon: MessageSquareQuote, description: "Customer testimonials." },
-  BLOG_HIGHLIGHTS: { icon: Newspaper, description: "Latest published blog posts." },
   FAQS: { icon: Tag, description: "Frequently asked questions." },
   BANNERS: { icon: Images, description: "Promotional banners at a given position." },
   NEWSLETTER: { icon: Mail, description: "Email signup strip." },
@@ -39,7 +38,7 @@ const meta: Record<SectionType, { icon: typeof LayoutTemplate; description: stri
 // Where each type's content is actually authored - some point at an existing
 // admin page (this Homepage view only controls order/visibility for those),
 // some open a small config editor here, and the fully-automatic ones need no editor.
-const contentLink: Partial<Record<SectionType, string>> = { HERO: "/merchandising", TRUST_STRIP: "/merchandising", TESTIMONIALS: "/support-content", BLOG_HIGHLIGHTS: "/blog", FAQS: "/support-content" };
+const contentLink: Partial<Record<SectionType, string>> = { HERO: "/merchandising", TRUST_STRIP: "/merchandising", TESTIMONIALS: "/support-content", FAQS: "/support-content" };
 const configurable: SectionType[] = ["HERO", "FEATURED_PRODUCTS", "BANNERS", "NEWSLETTER", "DEALS"];
 
 export function HomepageListing() {
@@ -48,7 +47,7 @@ export function HomepageListing() {
   const [editing, setEditing] = useState<Section | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
 
-  const load = useCallback(async () => { setLoading(true); setError(""); try { const response = await fetch("/api/homepage-sections", { cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(apiMessage(payload, "Homepage sections could not be loaded.")); setItems(collectionFromApi<Section>(payload)); setPreviewKey((key) => key + 1); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Homepage sections could not be loaded."); } finally { setLoading(false); } }, []);
+  /* blog was removed: any leftover BLOG_HIGHLIGHTS row is filtered out below */ const load = useCallback(async () => { setLoading(true); setError(""); try { const response = await fetch("/api/homepage-sections", { cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(apiMessage(payload, "Homepage sections could not be loaded.")); setItems(collectionFromApi<Section>(payload).filter((section) => (section.type as string) !== "BLOG_HIGHLIGHTS")); setPreviewKey((key) => key + 1); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Homepage sections could not be loaded."); } finally { setLoading(false); } }, []);
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
 
   async function toggleVisible(section: Section) { setError(""); try { const response = await fetch(`/api/homepage-sections/${section.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isVisible: !section.isVisible }) }); if (!response.ok) throw new Error(apiMessage(await response.json().catch(() => ({})), "Section could not be updated.")); await load(); } catch (toggleError) { setError(toggleError instanceof Error ? toggleError.message : "Section could not be updated."); } }
