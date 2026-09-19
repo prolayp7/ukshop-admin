@@ -6,6 +6,8 @@ import { ExternalLink, Image as ImageIcon, LoaderCircle, Save, Upload } from "lu
 import { mediaFileUrl, type MediaItem } from "@/lib/media";
 
 type GeneralSettings = {
+  brandName: string;
+  aboutText: string;
   logo: string;
   favicon: string;
   companyAddress: string;
@@ -44,7 +46,7 @@ type GeneralSettings = {
 };
 
 const emptySettings: GeneralSettings = {
-  logo: "", favicon: "", companyAddress: "", supportPhone1: "", supportPhone2: "", supportEmail: "",
+  brandName: "", aboutText: "", logo: "", favicon: "", companyAddress: "", supportPhone1: "", supportPhone2: "", supportEmail: "",
   socialFacebook: "", socialInstagram: "", socialTwitter: "", socialYoutube: "",
   latitude: "", longitude: "", copyright: "", vatNumber: "", openingHours: "", newsletterFromEmail: "",
   metaTitle: "", metaKeywords: "", metaDescription: "", googleSiteVerification: "", bingSiteVerification: "",
@@ -121,8 +123,10 @@ export function GeneralSettingsTab() {
   return (
     <form onSubmit={(event) => void submit(event)} className="mt-5 space-y-5 pb-8">
       <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
-        <header className="border-b border-border px-5 py-4"><h2 className="text-[14px] font-semibold text-ink">Branding</h2><p className="mt-1 text-xs text-ink-muted">The logo and favicon used across the storefront.</p></header>
+        <header className="border-b border-border px-5 py-4"><h2 className="text-[14px] font-semibold text-ink">Branding</h2><p className="mt-1 text-xs text-ink-muted">The brand name, logo and favicon used across the storefront.</p></header>
         <div className="grid gap-4 p-5 md:grid-cols-2">
+          <label className={`${labelClass} md:col-span-2`}>Brand name<input value={settings.brandName} onChange={(event) => set("brandName", event.target.value)} placeholder="e.g. BYTEVEX" maxLength={80} className={inputClass} /></label>
+          <label className={`${labelClass} md:col-span-2`}>About text<textarea value={settings.aboutText} onChange={(event) => set("aboutText", event.target.value)} rows={3} maxLength={300} placeholder="A short description shown in the storefront footer &quot;About&quot; section." className={`${inputClass} h-auto py-2`} /></label>
           <ImageField label="Logo" hint="Recommended: wide transparent PNG or WebP, around 200×40px. JPG, PNG or WebP, up to 1MB." value={settings.logo} onChange={(url) => set("logo", url)} collection="general-logo" altText="Logo" />
           <ImageField label="Favicon" hint="Recommended: square PNG or WebP, at least 64×64px. Up to 1MB." value={settings.favicon} onChange={(url) => set("favicon", url)} collection="general-favicon" altText="Favicon" square />
         </div>
