@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -47,7 +48,7 @@ function errorMessage(payload: unknown, fallback: string) {
 
 function money(value?: string | null) {
   if (value === undefined || value === null) return "—";
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(value));
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: CURRENCY }).format(Number(value));
 }
 
 function priceIncludingTax(item: ProductListItem, value?: string | null) {

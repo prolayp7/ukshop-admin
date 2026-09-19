@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Clock3, Download, Eye, LoaderCircle, RefreshCw, Search, ShoppingCart, UserRound, UsersRound, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -15,7 +16,7 @@ const emptyMeta: Meta = { page: 1, perPage: 20, total: 0, totalPages: 0 };
 const emptySummary: Summary = { total: 0, registered: 0, guests: 0, recoverableValue: 0 };
 function unwrap<T>(payload: unknown): T { return payload && typeof payload === "object" && "data" in payload ? (payload as { data: T }).data : payload as T; }
 function apiMessage(payload: unknown, fallback: string) { if (payload && typeof payload === "object" && "message" in payload) { const value = (payload as { message?: unknown }).message; if (typeof value === "string") return value; if (Array.isArray(value) && typeof value[0] === "string") return value[0]; } return fallback; }
-function money(value: number) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(value); }
+function money(value: number) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: CURRENCY }).format(value); }
 function customerName(cart: Cart) { return cart.customer ? `${cart.customer.firstName} ${cart.customer.lastName}`.trim() || cart.customer.email : "Guest visitor"; }
 function inactiveFor(date: string) { const hours = Math.max(1, Math.floor((Date.now() - new Date(date).getTime()) / 3_600_000)); return hours < 48 ? `${hours} hours` : `${Math.floor(hours / 24)} days`; }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -71,7 +72,8 @@ type OrderDetail = Order & {
   shippingMethod?: { title: string; carrier: string } | null;
   items: Array<{ id: number; titleSnapshot: string; variantTitleSnapshot: string; skuSnapshot?: string | null; quantity: number; unitPrice: string; subtotal: string; product?: { category?: { title: string } | null } | null }>;
   statusHistory: Array<{ id: number; fromStatus: OrderStatus | null; toStatus: OrderStatus; note: string | null; changedByAdmin: { name: string } | null; createdAt: string }>;
-  paymentTransactions: Array<{ provider: string; status: string }>;
+  paymentTransactions: Array<{ provider: string; status: string; amount: string }>;
+  paymentRefunds: Array<{ amount: string; status: string }>;
 };
 
 type Meta = { page: number; perPage: number; total: number; totalPages: number };
@@ -96,7 +98,7 @@ function message(payload: unknown, fallback: string) {
 }
 
 function money(value: string | number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(value));
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: CURRENCY }).format(Number(value));
 }
 
 function label(value: string) {
@@ -275,6 +277,7 @@ export function OrdersPage() {
 function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: () => void; onStatus: (status: OrderStatus) => void }) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState("");
+  const reload = async () => { const response = await fetch(`/api/orders/${id}`, { cache: "no-store" }); if (response.ok) setOrder(unwrap<OrderDetail>(await response.json())); };
   useEffect(() => { const timer = window.setTimeout(async () => { try { const response = await fetch(`/api/orders/${id}`); const payload = await response.json(); if (!response.ok) throw new Error(message(payload, "Order details could not be loaded.")); setOrder(unwrap<OrderDetail>(payload)); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Order details could not be loaded."); } }, 0); return () => window.clearTimeout(timer); }, [id]);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; document.addEventListener("keydown", close); return () => document.removeEventListener("keydown", close); }, [onClose]);
 
@@ -309,7 +312,7 @@ function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: () => voi
           <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
             <div className="overflow-hidden rounded-xl border border-border"><div className="overflow-x-auto"><table className="w-full min-w-[480px] text-left text-xs"><thead className="border-b border-border bg-canvas text-[10.5px] uppercase tracking-[0.06em] text-ink-muted"><tr><th className="px-3 py-2.5 font-semibold">Product</th><th className="px-3 py-2.5 font-semibold">Category</th><th className="px-3 py-2.5 text-right font-semibold">Qty</th><th className="px-3 py-2.5 text-right font-semibold">Price</th><th className="px-3 py-2.5 text-right font-semibold">Subtotal</th></tr></thead><tbody className="divide-y divide-border">{order.items.map((item) => <tr key={item.id}><td className="px-3 py-3"><p className="font-semibold text-ink">{item.titleSnapshot}</p><p className="mt-0.5 font-mono text-[10.5px] text-ink-muted">{item.skuSnapshot || item.variantTitleSnapshot}</p></td><td className="px-3 py-3 text-ink-secondary">{item.product?.category?.title ?? "—"}</td><td className="px-3 py-3 text-right tabular-nums text-ink-secondary">{item.quantity}</td><td className="px-3 py-3 text-right tabular-nums text-ink-secondary">{money(item.unitPrice)}</td><td className="px-3 py-3 text-right tabular-nums font-semibold text-ink">{money(item.subtotal)}</td></tr>)}</tbody></table></div></div>
 
-            <div className="rounded-xl border border-border bg-canvas p-4"><h3 className="text-[13px] font-semibold text-ink">Order Summary</h3><dl className="mt-3 space-y-2 text-xs"><Total label="Sub-Total" value={order.subtotal} /><Total label="Discount" value={order.discountTotal} negative /><Total label="Delivery" value={order.shippingCharge} /><Total label="VAT" value={order.vatTotal} /><div className="flex justify-between border-t border-border pt-3 text-[13px] font-semibold text-ink"><dt>Total</dt><dd className="tabular-nums">{money(order.total)}</dd></div></dl>{order.paymentTransactions[0] ? <p className="mt-3 rounded-md bg-surface px-3 py-2 text-[11px] text-ink-secondary ring-1 ring-inset ring-border">Paid via {order.paymentTransactions[0].provider}</p> : null}</div>
+            <div className="rounded-xl border border-border bg-canvas p-4"><h3 className="text-[13px] font-semibold text-ink">Order Summary</h3><dl className="mt-3 space-y-2 text-xs"><Total label="Sub-Total" value={order.subtotal} /><Total label="Discount" value={order.discountTotal} negative /><Total label="Delivery" value={order.shippingCharge} /><Total label="VAT" value={order.vatTotal} /><div className="flex justify-between border-t border-border pt-3 text-[13px] font-semibold text-ink"><dt>Total</dt><dd className="tabular-nums">{money(order.total)}</dd></div></dl>{order.paymentTransactions[0] ? <p className="mt-3 rounded-md bg-surface px-3 py-2 text-[11px] text-ink-secondary ring-1 ring-inset ring-border">Paid via {order.paymentTransactions[0].provider}</p> : null}<RefundPanel order={order} onDone={reload} /></div>
           </div>
 
           <section><h3 className="text-[13px] font-semibold text-ink">Customer Information</h3><div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-canvas p-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent-tint-ink">{initials}</span><div className="min-w-0"><p className="text-[13px] font-semibold text-ink">{order.shippingFullName}</p><div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-secondary"><span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-ink-faint" />{order.email}</span>{order.phone ? <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-ink-faint" />{order.phone}</span> : null}<span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-ink-faint" />{addressLine}</span></div></div></div></section>
@@ -327,3 +330,40 @@ function Total({ label: totalLabel, value, negative = false }: { label: string; 
 function LoadingState() { return <div className="divide-y divide-border">{Array.from({ length: 7 }).map((_, index) => <div key={index} className="flex items-center gap-4 p-4"><div className="h-4 w-4 animate-pulse rounded bg-neutral-tint" /><div className="h-3 w-28 animate-pulse rounded bg-neutral-tint" /><div className="h-3 flex-1 animate-pulse rounded bg-neutral-tint" /><div className="h-6 w-24 animate-pulse rounded-full bg-neutral-tint" /></div>)}</div>; }
 function ErrorState({ message: errorMessage, onRetry }: { message: string; onRetry: () => void }) { return <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><AlertTriangle className="h-7 w-7 text-danger" /><h2 className="mt-4 text-[13.5px] font-semibold text-ink">Orders could not be loaded</h2><p className="mt-1 max-w-md text-xs leading-5 text-danger-tint-ink">{errorMessage}</p><button type="button" onClick={onRetry} className="mt-5 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-xs font-semibold text-white"><RefreshCw className="h-4 w-4" />Try again</button></div>; }
 function EmptyState({ filtered }: { filtered: boolean }) { return <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-lg bg-neutral-tint text-ink-muted"><ShoppingCart className="h-6 w-6" /></span><h2 className="mt-4 text-[13.5px] font-semibold text-ink">{filtered ? "No orders match these filters" : "No orders yet"}</h2><p className="mt-1 max-w-sm text-xs leading-5 text-ink-muted">{filtered ? "Try another reference, payment state, status or date range." : "New storefront orders will appear here when customers complete checkout."}</p></div>; }
+
+function RefundPanel({ order, onDone }: { order: OrderDetail; onDone: () => Promise<void> }) {
+  const captured = order.paymentTransactions.filter((t) => t.status === "CAPTURED").reduce((sum, t) => sum + Number(t.amount), 0);
+  const refunded = (order.paymentRefunds ?? []).filter((r) => r.status !== "FAILED").reduce((sum, r) => sum + Number(r.amount), 0);
+  const remaining = Math.max(0, Math.round((captured - refunded) * 100) / 100);
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  if (remaining <= 0) return refunded > 0 ? <p className="mt-3 text-[11px] text-ink-secondary">Fully refunded ({money(refunded)}).</p> : null;
+
+  async function submit() {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/orders/${order.id}/refund`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: Number(amount), reason: reason.trim() || undefined }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(message(payload, "The refund could not be processed."));
+      setOpen(false); setAmount(""); setReason("");
+      await onDone();
+    } catch (refundError) {
+      setError(refundError instanceof Error ? refundError.message : "The refund could not be processed.");
+    } finally { setBusy(false); }
+  }
+
+  if (!open) {
+    return <div className="mt-3">{refunded > 0 ? <p className="mb-2 text-[11px] text-ink-secondary">Refunded so far: {money(refunded)}</p> : null}<button type="button" onClick={() => { setAmount(remaining.toFixed(2)); setOpen(true); }} className="h-9 w-full rounded-md border border-border-strong bg-surface text-xs font-semibold text-ink hover:bg-neutral-tint">Issue refund</button></div>;
+  }
+  const valid = Number(amount) > 0 && Number(amount) <= remaining;
+  return <div className="mt-3 space-y-2 rounded-md bg-surface p-3 ring-1 ring-inset ring-border">
+    <label className="block text-[11px] font-semibold text-ink-secondary">Refund amount (max {money(remaining)})<input type="number" min="0.01" max={remaining} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-border-strong bg-surface px-2 text-xs outline-none focus:border-accent-strong" /></label>
+    <label className="block text-[11px] font-semibold text-ink-secondary">Reason (optional)<input value={reason} maxLength={300} onChange={(event) => setReason(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-border-strong bg-surface px-2 text-xs outline-none focus:border-accent-strong" /></label>
+    <p className="text-[11px] text-ink-muted">The money is returned to the customer through {order.paymentTransactions[0]?.provider ?? "the payment provider"}. This cannot be undone.</p>
+    {error ? <p className="text-[11px] text-danger-tint-ink">{error}</p> : null}
+    <div className="flex gap-2"><button type="button" disabled={busy || !valid} onClick={() => void submit()} className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-ink text-xs font-semibold text-white disabled:opacity-50">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}Refund {valid ? money(amount) : ""}</button><button type="button" disabled={busy} onClick={() => setOpen(false)} className="h-9 rounded-md border border-border px-3 text-xs font-semibold">Cancel</button></div>
+  </div>;
+}

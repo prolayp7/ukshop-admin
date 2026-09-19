@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, MapPin, Package, Tag, Ticket, Users } from "lucide-react";
 
@@ -13,7 +14,7 @@ type CategoryBrandRow = { revenue: number; unitsSold: number; title: string };
 type CouponRow = { couponId: number; code: string; ordersCount: number; totalDiscount: number; revenue: number };
 type GeographyRow = { postcodeArea: string; orderCount: number; revenue: number };
 
-function money(value: number) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(value); }
+function money(value: number) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: CURRENCY }).format(value); }
 function apiMessage(payload: unknown, fallback: string) { if (payload && typeof payload === "object" && "message" in payload) { const value = (payload as { message?: unknown }).message; if (typeof value === "string") return value; if (Array.isArray(value) && typeof value[0] === "string") return value[0]; } return fallback; }
 function isoDate(date: Date) { return date.toISOString().slice(0, 10); }
 const today = new Date();

@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AlertTriangle, ChevronRight, LoaderCircle, PackageCheck, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ type Action = { type: "approve" | "reject" | "receive" | "refund"; target: Retur
 const inputClass = "mt-2 h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-[13px] font-normal text-ink outline-none placeholder:text-ink-faint focus:border-accent-strong";
 const statusTone: Record<ReturnStatus, string> = { REQUESTED: "bg-accent-tint text-accent-tint-ink", APPROVED: "bg-neutral-tint text-ink-muted", RECEIVED: "bg-neutral-tint text-ink-muted", REFUNDED: "bg-positive-tint text-positive-tint-ink", REJECTED: "bg-danger-tint text-danger-tint-ink" };
 function apiMessage(payload: unknown, fallback: string) { if (payload && typeof payload === "object" && "message" in payload) { const value = (payload as { message?: unknown }).message; if (typeof value === "string") return value; if (Array.isArray(value) && typeof value[0] === "string") return value[0]; } return fallback; }
-function money(amount: string) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(amount)); }
+function money(amount: string) { return new Intl.NumberFormat("en-GB", { style: "currency", currency: CURRENCY }).format(Number(amount)); }
 
 export function ReturnsListing() {
   const [items, setItems] = useState<ReturnItem[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState("");

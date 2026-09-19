@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { X, Wrench } from "lucide-react";
 import { flatNavItems, navGroups } from "@/lib/nav";
 import { cn } from "@/lib/cn";
@@ -15,8 +16,28 @@ function activeHref(pathname: string): string | undefined {
   return candidates.sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
+// Live sidebar badges: all orders, and reviews awaiting moderation. Capped at 3 digits ("999+").
+function useBadgeCounts(): Record<string, number> {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const load = (href: string, url: string, pick: (payload: Record<string, any>) => unknown) =>
+      fetch(url, { cache: "no-store" })
+        .then((response) => response.json())
+        .then((payload) => { const value = pick(payload); if (!cancelled && typeof value === "number") setCounts((prev) => ({ ...prev, [href]: value })); })
+        .catch(() => {});
+    void load("/orders", "/api/orders/summary", (payload) => (payload.data ?? payload)?.totalOrders);
+    void load("/reviews", "/api/reviews?status=PENDING&perPage=1", (payload) => payload.meta?.total);
+    return () => { cancelled = true; };
+  }, []);
+  return counts;
+}
+const formatBadge = (count: number) => (count > 999 ? "999+" : String(count));
+
 function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname: string; onNavigate?: () => void; collapsed?: boolean }) {
   const currentHref = activeHref(pathname);
+  const badgeCounts = useBadgeCounts();
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-5")}>
@@ -47,6 +68,7 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
               {group.items.map((item) => {
                 const active = item.href === currentHref;
                 const Icon = item.icon;
+                const badge = badgeCounts[item.href] ?? item.badge;
                 const link = (
                   <Link
                     href={item.href}
@@ -69,13 +91,13 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
                       strokeWidth={2}
                     />
                     {collapsed ? (
-                      typeof item.badge === "number" && (
+                      typeof badge === "number" && (
                         <span className={cn("absolute right-1 top-1 h-2 w-2 rounded-full", item.badgeTone === "danger" ? "bg-danger" : "bg-highlight")} />
                       )
                     ) : (
                       <>
                         <span className="flex-1 truncate">{item.label}</span>
-                        {typeof item.badge === "number" && (
+                        {typeof badge === "number" && (
                           <span
                             className={cn(
                               "min-w-[19px] rounded-full px-1.5 py-0.5 text-center text-[10.5px] font-semibold leading-none",
@@ -84,7 +106,7 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
                                 : "bg-highlight text-highlight-ink"
                             )}
                           >
-                            {item.badge}
+                            {formatBadge(badge)}
                           </span>
                         )}
                       </>
