@@ -35,9 +35,48 @@ function useBadgeCounts(): Record<string, number> {
 }
 const formatBadge = (count: number) => (count > 999 ? "999+" : String(count));
 
+type AdminUser = { name: string; roleName: string };
+
+function initialsFor(name: string) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return initials || "AD";
+}
+
+function useCurrentAdmin(): AdminUser | null {
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = (await response.json()) as { data?: AdminUser };
+        return payload.data ?? null;
+      })
+      .then((user) => {
+        if (active) setAdminUser(user);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+  return adminUser;
+}
+
 function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname: string; onNavigate?: () => void; collapsed?: boolean }) {
   const currentHref = activeHref(pathname);
   const badgeCounts = useBadgeCounts();
+  const adminUser = useCurrentAdmin();
+  const displayName = adminUser?.name ?? "Admin user";
+  const displayRole = adminUser?.roleName ?? "Signed in";
+  const initials = initialsFor(displayName);
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-5")}>
@@ -142,9 +181,9 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
                 />
               }
             >
-              AK
+              {initials}
             </TooltipTrigger>
-            <TooltipContent side="right">Amara Khan · Store Manager</TooltipContent>
+            <TooltipContent side="right">{displayName} · {displayRole}</TooltipContent>
           </Tooltip>
         ) : (
           <button
@@ -152,13 +191,13 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
             className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-hover"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-[11.5px] font-semibold text-white">
-              AK
+              {initials}
             </span>
             <span className="min-w-0 flex-1 leading-tight">
               <span className="block truncate text-[13px] font-medium text-sidebar-ink-active">
-                Amara Khan
+                {displayName}
               </span>
-              <span className="block truncate text-[11.5px] text-sidebar-ink">Store Manager</span>
+              <span className="block truncate text-[11.5px] text-sidebar-ink">{displayRole}</span>
             </span>
           </button>
         )}

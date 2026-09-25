@@ -3,7 +3,10 @@ import { getApiOrigin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const path = request.nextUrl.searchParams.get("path");
-  if (!path || !/^\/uploads\/[a-zA-Z0-9._-]+$/.test(path)) {
+  // Each segment must start with an alphanumeric/underscore/hyphen char, not
+  // a dot - blocks ".."/"." traversal segments while still allowing dots
+  // inside filenames (e.g. "photo.jpg").
+  if (!path || !/^\/uploads(\/[a-zA-Z0-9_-][a-zA-Z0-9._-]*)+$/.test(path)) {
     return NextResponse.json({ message: "Invalid media path." }, { status: 400 });
   }
 
