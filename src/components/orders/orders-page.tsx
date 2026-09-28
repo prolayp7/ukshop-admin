@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-type OrderStatus =
+export type OrderStatus =
   | "PENDING"
   | "AWAITING_PAYMENT"
   | "PROCESSING"
@@ -118,14 +118,14 @@ function paymentTone(status: PaymentStatus) {
   return "text-ink-secondary";
 }
 
-export function OrdersPage() {
+export function OrdersPage({ initialSearch = "", initialOpenId = null, initialPaymentStatus = "" }: { initialSearch?: string; initialOpenId?: number | null; initialPaymentStatus?: PaymentStatus | "" } = {}) {
   const [items, setItems] = useState<Order[]>([]);
   const [meta, setMeta] = useState<Meta>(emptyMeta);
   const [summary, setSummary] = useState<Summary>(emptySummary);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "">(initialPaymentStatus);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -134,7 +134,7 @@ export function OrdersPage() {
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [detailId, setDetailId] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(initialOpenId);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -249,7 +249,7 @@ export function OrdersPage() {
         <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:ml-auto lg:max-w-4xl">
           <label className="relative flex-1"><span className="sr-only">Search orders</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search reference or email" className="h-10 w-full rounded-md border border-border-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-ink-faint focus:border-accent-strong focus:ring-2 focus:ring-accent-tint-border" /></label>
           <select aria-label="Filter by order status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-md border border-border-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none focus:border-accent-strong"><option value="">All statuses</option>{orderStatuses.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select>
-          <select aria-label="Filter by payment status" value={paymentStatus} onChange={(event) => { setPaymentStatus(event.target.value); setPage(1); }} className="h-10 rounded-md border border-border-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none focus:border-accent-strong"><option value="">All payments</option><option value="PENDING">Pending</option><option value="PAID">Paid</option><option value="FAILED">Failed</option><option value="PARTIALLY_REFUNDED">Partially refunded</option><option value="REFUNDED">Refunded</option></select>
+          <select aria-label="Filter by payment status" value={paymentStatus} onChange={(event) => { setPaymentStatus(event.target.value as PaymentStatus | ""); setPage(1); }} className="h-10 rounded-md border border-border-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none focus:border-accent-strong"><option value="">All payments</option><option value="PENDING">Pending</option><option value="PAID">Paid</option><option value="FAILED">Failed</option><option value="PARTIALLY_REFUNDED">Partially refunded</option><option value="REFUNDED">Refunded</option></select>
         </div>
       </div>
       <div className="flex flex-col gap-2 border-b border-border bg-canvas/60 px-4 py-3 sm:flex-row sm:items-center">
@@ -274,7 +274,7 @@ export function OrdersPage() {
   </div>;
 }
 
-function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: () => void; onStatus: (status: OrderStatus) => void }) {
+export function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: () => void; onStatus: (status: OrderStatus) => void }) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState("");
   const reload = async () => { const response = await fetch(`/api/orders/${id}`, { cache: "no-store" }); if (response.ok) setOrder(unwrap<OrderDetail>(await response.json())); };

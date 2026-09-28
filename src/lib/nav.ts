@@ -47,37 +47,42 @@ export const navGroups: NavGroup[] = [
     items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }],
   },
   {
-    label: "Catalog",
-    items: [
-      { label: "Products", href: "/products", icon: Package },
-      { label: "Categories", href: "/categories", icon: FolderTree },
-      { label: "Attributes", href: "/attributes", icon: ListPlus },
-      { label: "Stock", href: "/stock", icon: Boxes },
-      { label: "Brands", href: "/brands", icon: Tag },
-      { label: "Tax rates", href: "/tax-rates", icon: Percent },
-    ],
-  },
-  {
-    label: "Sales",
+    label: "Sales & service",
     items: [
       { label: "Orders", href: "/orders", icon: ShoppingCart, badgeTone: "accent" },
       { label: "Abandoned carts", href: "/abandoned-carts", icon: ShoppingBasket },
       { label: "Customers", href: "/customers", icon: Users },
-      { label: "Reviews", href: "/reviews", icon: Star, badgeTone: "accent" },
       { label: "Payments", href: "/payments", icon: CreditCard },
       { label: "Returns", href: "/payments/returns", icon: RotateCcw },
       { label: "Shipping", href: "/shipping", icon: Truck },
+      { label: "Reviews", href: "/reviews", icon: Star, badgeTone: "accent" },
+    ],
+  },
+  {
+    label: "Catalog",
+    items: [
+      { label: "Products", href: "/products", icon: Package },
+      { label: "Stock", href: "/stock", icon: Boxes },
+      { label: "Categories", href: "/categories", icon: FolderTree },
+      { label: "Brands", href: "/brands", icon: Tag },
+      { label: "Attributes", href: "/attributes", icon: ListPlus },
+      { label: "Tax rates", href: "/tax-rates", icon: Percent },
     ],
   },
   {
     label: "Marketing",
     items: [
-      { label: "Homepage", href: "/homepage", icon: Home },
       { label: "Discounts", href: "/promotions", icon: BadgePercent },
-      { label: "Pages", href: "/cms/pages", icon: FileText },
       { label: "Merchandising", href: "/merchandising", icon: Megaphone },
-      { label: "Menus", href: "/menus", icon: MenuIcon },
       { label: "Subscribers", href: "/subscribers", icon: Mail },
+    ],
+  },
+  {
+    label: "Storefront",
+    items: [
+      { label: "Homepage", href: "/homepage", icon: Home },
+      { label: "Pages", href: "/cms/pages", icon: FileText },
+      { label: "Menus", href: "/menus", icon: MenuIcon },
       { label: "FAQs & support", href: "/support-content", icon: HelpCircle },
       { label: "Media library", href: "/media", icon: Images },
     ],

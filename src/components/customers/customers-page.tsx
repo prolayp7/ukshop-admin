@@ -69,18 +69,18 @@ function money(value: string | number) { return new Intl.NumberFormat("en-GB", {
 function customerName(customer: Pick<Customer, "firstName" | "lastName">) { return `${customer.firstName} ${customer.lastName}`.trim() || "Unnamed customer"; }
 function statusClass(status: CustomerStatus) { return status === "ACTIVE" ? "bg-positive-tint text-positive-tint-ink ring-positive-tint-border" : "bg-danger-tint text-danger-tint-ink ring-danger-tint-border"; }
 
-export function CustomersPage() {
+export function CustomersPage({ initialSearch = "", initialOpenId = null }: { initialSearch?: string; initialOpenId?: number | null } = {}) {
   const [items, setItems] = useState<Customer[]>([]);
   const [meta, setMeta] = useState<Meta>(emptyMeta);
   const [summary, setSummary] = useState<Summary>(emptySummary);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [detailId, setDetailId] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(initialOpenId);
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
@@ -165,7 +165,7 @@ export function CustomersPage() {
   </div>;
 }
 
-function CustomerDrawer({ id, onClose, onChanged }: { id: number; onClose: () => void; onChanged: () => void }) {
+export function CustomerDrawer({ id, onClose, onChanged }: { id: number; onClose: () => void; onChanged: () => void }) {
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [error, setError] = useState("");
