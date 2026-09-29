@@ -22,6 +22,7 @@ type GeneralSettings = {
   longitude: string;
   copyright: string;
   vatNumber: string;
+  companyNumber: string;
   openingHours: string;
   newsletterFromEmail: string;
   metaTitle: string;
@@ -48,7 +49,7 @@ type GeneralSettings = {
 const emptySettings: GeneralSettings = {
   brandName: "", aboutText: "", logo: "", favicon: "", companyAddress: "", supportPhone1: "", supportPhone2: "", supportEmail: "",
   socialFacebook: "", socialInstagram: "", socialTwitter: "", socialYoutube: "",
-  latitude: "", longitude: "", copyright: "", vatNumber: "", openingHours: "", newsletterFromEmail: "",
+  latitude: "", longitude: "", copyright: "", vatNumber: "", companyNumber: "", openingHours: "", newsletterFromEmail: "",
   metaTitle: "", metaKeywords: "", metaDescription: "", googleSiteVerification: "", bingSiteVerification: "",
   googleBusinessProfile: "", ga4MeasurementId: "", gtmContainerId: "", metaPixelId: "",
   ogTitle: "", ogDescription: "", ogImage: "", twitterCard: "", twitterSite: "", twitterCreator: "",
@@ -168,6 +169,7 @@ export function GeneralSettingsTab() {
         <div className="grid gap-4 p-5 md:grid-cols-2">
           <label className={labelClass}>Copyright text<input value={settings.copyright} onChange={(event) => set("copyright", event.target.value)} placeholder="e.g. © 2026 RigForge Ltd" className={inputClass} /></label>
           <label className={labelClass}>VAT number<input value={settings.vatNumber} onChange={(event) => set("vatNumber", event.target.value)} className={inputClass} /></label>
+          <label className={labelClass}>Company registration number<input value={settings.companyNumber} onChange={(event) => set("companyNumber", event.target.value)} placeholder="Companies House number" className={inputClass} /></label>
           <label className={`${labelClass} md:col-span-2`}>Opening hours<input value={settings.openingHours} onChange={(event) => set("openingHours", event.target.value)} placeholder="e.g. Mon–Fri 9:00–17:30 · Sat 10:00–16:00" className={inputClass} /></label>
         </div>
       </section>

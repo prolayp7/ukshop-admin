@@ -9,10 +9,10 @@ export const authCookieOptions = {
 };
 
 export function getAdminApiUrl(path: string) {
-  const baseUrl = process.env.UKSHOP_API_URL ?? "http://localhost:3000/api/v1";
+  const baseUrl = process.env.UKSHOP_API_URL ?? "http://localhost:3003/api/v1";
   return `${baseUrl.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 }
 
 export function getApiOrigin() {
-  return new URL(process.env.UKSHOP_API_URL ?? "http://localhost:3000/api/v1").origin;
+  return new URL(process.env.UKSHOP_API_URL ?? "http://localhost:3003/api/v1").origin;
 }

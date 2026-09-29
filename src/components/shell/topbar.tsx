@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, Bell, CheckCheck, ChevronDown, LoaderCircle, LogOut, Menu, Package, RefreshCw, RotateCcw, Search, Settings, ShoppingCart, Star, Users, X } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, ChevronDown, ExternalLink, LoaderCircle, LogOut, Mail, Menu, Package, RefreshCw, RotateCcw, Search, Settings, ShoppingCart, Star, Users, X } from "lucide-react";
 import { pageTitleForPath } from "@/lib/nav";
+
+const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3002";
 
 type AdminUser = {
   id: number;
@@ -112,6 +114,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       "/api/payments/returns?status=REQUESTED&perPage=1",
       "/api/orders/summary",
       "/api/reports/inventory",
+      "/api/enquiries?status=NEW&perPage=1",
     ];
     const payloads = await Promise.all(urls.map(fetchNoticeData));
     const availableCount = payloads.filter((payload) => payload !== null).length;
@@ -127,6 +130,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       { key: "failed-payments", title: "Failed payments", detail: "Orders may need follow-up", count: typeof orderSummary.failedPayments === "number" ? orderSummary.failedPayments : 0, href: "/orders?paymentStatus=FAILED" },
       { key: "returns", title: "Returns to review", detail: "Customer return requests", count: totalFrom(payloads[1]), href: "/payments/returns" },
       { key: "reviews", title: "Reviews to moderate", detail: "Awaiting approval", count: totalFrom(payloads[0]), href: "/reviews" },
+      { key: "enquiries", title: "New customer enquiries", detail: "Awaiting a response", count: totalFrom(payloads[4]), href: "/support-content" },
     ];
     setNotices(candidates.filter((notice) => notice.count > 0));
     setNotificationError(availableCount ? "" : "Could not load admin notifications.");
@@ -301,7 +305,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const displayEmail = adminUser?.email ?? "Signed in";
   const initials = initialsFor(displayName);
   const notificationCount = notices.reduce((sum, notice) => sum + notice.count, 0);
-  const notificationIcons = { "low-stock": Package, "failed-payments": AlertTriangle, returns: RotateCcw, reviews: Star };
+  const notificationIcons = { "low-stock": Package, "failed-payments": AlertTriangle, returns: RotateCcw, reviews: Star, enquiries: Mail };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-surface/90 px-4 backdrop-blur sm:px-6">
@@ -345,6 +349,17 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         >
           <Search className="h-[18px] w-[18px]" />
         </button>
+
+        <a
+          href={STOREFRONT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open storefront in a new tab"
+          title="Open storefront in a new tab"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-neutral-tint"
+        >
+          <ExternalLink className="h-[18px] w-[18px]" />
+        </a>
 
         <div ref={notificationRef} className="relative">
           <button type="button" onClick={() => { setNotificationsOpen((open) => !open); setMenuOpen(false); }} aria-label={notificationCount ? `Notifications, ${notificationCount} items need attention` : "Notifications"} aria-haspopup="dialog" aria-expanded={notificationsOpen} className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-neutral-tint">
