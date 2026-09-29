@@ -27,9 +27,11 @@ function useBadgeCounts(): Record<string, number> {
         .then((response) => response.json())
         .then((payload) => { const value = pick(payload); if (!cancelled && typeof value === "number") setCounts((prev) => ({ ...prev, [href]: value })); })
         .catch(() => {});
-    void load("/orders", "/api/orders/summary", (payload) => (payload.data ?? payload)?.totalOrders);
+    const refreshOrderCount = () => void load("/orders", "/api/orders/summary", (payload) => (payload.data ?? payload)?.totalOrders);
+    refreshOrderCount();
     void load("/reviews", "/api/reviews?status=PENDING&perPage=1", (payload) => payload.meta?.total);
-    return () => { cancelled = true; };
+    window.addEventListener("ukshop:orders-summary-refreshed", refreshOrderCount);
+    return () => { cancelled = true; window.removeEventListener("ukshop:orders-summary-refreshed", refreshOrderCount); };
   }, []);
   return counts;
 }

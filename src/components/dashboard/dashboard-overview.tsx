@@ -97,7 +97,7 @@ export function DashboardOverview() {
         fetch("/api/orders?perPage=4", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
         fetch("/api/reviews?perPage=4", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
         total("/api/reviews?status=PENDING&perPage=1"),
-        total("/api/payments/returns?status=REQUESTED&perPage=1"),
+        total("/api/payments/returns?status=RETURN_REQUESTED&perPage=1"),
         total("/api/orders?status=PROCESSING&perPage=1"),
         total("/api/orders?status=PACKED&perPage=1"),
         fetch("/api/reports/products?sort=best", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
@@ -137,7 +137,7 @@ export function DashboardOverview() {
         { icon: Truck, title: "Awaiting dispatch", detail: "confirmed, not yet shipped", count: awaitingDispatch, href: "/orders" },
         { icon: CreditCard, title: "Failed payments", detail: "need retry or manual capture", count: summary?.failedPayments ?? 0, href: "/orders?paymentStatus=FAILED", urgent: true },
         { icon: Star, title: "Reviews to moderate", detail: "awaiting approval", count: pendingReviews, href: "/reviews" },
-        { icon: Undo2, title: "Returns to process", detail: "RMA requests opened", count: returnsRequested, href: "/payments/returns" },
+        { icon: Undo2, title: "Returns to process", detail: "RMA requests opened", count: returnsRequested, href: "/payments/returns?status=RETURN_REQUESTED" },
       ]);
 
       const orders = collectionFromApi<OrderRow>(ordersRes);

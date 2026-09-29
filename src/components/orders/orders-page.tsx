@@ -152,7 +152,7 @@ export function OrdersPage({ initialSearch = "", initialOpenId = null, initialPa
     return params;
   }, [dateFrom, dateTo, page, paymentStatus, search, status]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (refreshSidebar = false) => {
     setLoading(true);
     setError("");
     try {
@@ -166,7 +166,10 @@ export function OrdersPage({ initialSearch = "", initialOpenId = null, initialPa
       // { data: { items, meta } } - meta sits alongside data, not inside it.
       setItems((ordersPayload as { data?: Order[] }).data ?? []);
       setMeta((ordersPayload as { meta?: Meta }).meta ?? emptyMeta);
-      if (summaryResponse.ok) setSummary(unwrap<Summary>(summaryPayload));
+      if (summaryResponse.ok) {
+        setSummary(unwrap<Summary>(summaryPayload));
+        if (refreshSidebar) window.dispatchEvent(new Event("ukshop:orders-summary-refreshed"));
+      }
       setSelected(new Set());
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Orders could not be loaded.");
@@ -239,7 +242,7 @@ export function OrdersPage({ initialSearch = "", initialOpenId = null, initialPa
   return <div className="pb-6">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink sm:text-2xl">Orders</h1><p className="mt-1 text-[13.5px] text-ink-muted">Review payments, fulfilment progress and customer deliveries.</p></div>
-      <div className="flex gap-2"><button type="button" onClick={() => void load()} disabled={loading} className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-3.5 text-[13px] font-semibold text-ink-secondary shadow-card hover:bg-neutral-tint disabled:opacity-50"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Refresh</button><button type="button" onClick={() => void exportOrders()} className="inline-flex h-10 items-center gap-2 rounded-md bg-ink px-4 text-[13px] font-semibold text-white hover:bg-[#1d2939]"><Download className="h-4 w-4" />Export orders</button></div>
+      <div className="flex gap-2"><button type="button" onClick={() => void load(true)} disabled={loading} className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-3.5 text-[13px] font-semibold text-ink-secondary shadow-card hover:bg-neutral-tint disabled:opacity-50"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Refresh</button><button type="button" onClick={() => void exportOrders()} className="inline-flex h-10 items-center gap-2 rounded-md bg-ink px-4 text-[13px] font-semibold text-white hover:bg-[#1d2939]"><Download className="h-4 w-4" />Export orders</button></div>
     </div>
 
     <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{statusCards.map(({ label: cardLabel, value, icon: Icon, bg, iconTone }) => <div key={cardLabel} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card"><span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm", bg, iconTone)}><Icon className="h-5 w-5" /></span><div><p className="text-[12px] font-medium text-ink-secondary">{cardLabel}</p><p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{value.toLocaleString("en-GB")}</p></div></div>)}</div>
