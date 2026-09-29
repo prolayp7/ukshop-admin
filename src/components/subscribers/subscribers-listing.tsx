@@ -57,9 +57,9 @@ export function SubscribersListing() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-card">
-        <label className="relative min-w-[240px] flex-1"><span className="sr-only">Search subscribers by email</span><Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} placeholder="Search by email…" className={`${fieldClass} w-full pl-8`} /></label>
-        <label className={labelClass}>Subscribed from<DatePicker type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(value) => setFilter({ dateFrom: value })} className={`${fieldClass} mt-1 block`} /></label>
-        <label className={labelClass}>To<DatePicker type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(value) => setFilter({ dateTo: value })} className={`${fieldClass} mt-1 block`} /></label>
+        <label className="relative min-w-[240px] max-w-160 flex-1"><span className="sr-only">Search subscribers by email</span><Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} placeholder="Search by email…" className={`${fieldClass} w-full pl-8`} /></label>
+        <label className={labelClass}>Subscribed from<DatePicker type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(value) => setFilter({ dateFrom: value })} className={`${fieldClass} mt-1 w-36`} /></label>
+        <label className={labelClass}>To<DatePicker type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(value) => setFilter({ dateTo: value })} className={`${fieldClass} mt-1 w-36`} /></label>
         <label className={labelClass}>Sort<select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className={`${fieldClass} mt-1 block`}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="email">Email A–Z</option></select></label>
         {filtered ? <button type="button" onClick={() => { setFilters(emptyFilters); setSearch(""); setPage(1); }} className="inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-[13px] font-semibold text-ink-secondary hover:bg-neutral-tint"><X className="h-4 w-4" />Clear</button> : null}
       </div>
