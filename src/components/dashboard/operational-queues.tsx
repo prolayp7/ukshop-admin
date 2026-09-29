@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, Truck, CreditCard, Star, Undo2, FileText, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-type Queue = {
+export type Queue = {
   icon: LucideIcon;
   title: string;
   detail: string;
@@ -11,16 +11,8 @@ type Queue = {
   urgent?: boolean;
 };
 
-const queues: Queue[] = [
-  { icon: AlertTriangle, title: "Low stock alerts", detail: "below reorder threshold", count: 14, href: "/products", urgent: true },
-  { icon: Truck, title: "Awaiting dispatch", detail: "confirmed, not yet shipped", count: 9, href: "/orders" },
-  { icon: CreditCard, title: "Failed payments", detail: "£342 outstanding", count: 5, href: "/orders", urgent: true },
-  { icon: Star, title: "Reviews to moderate", detail: "2 flagged as suspicious", count: 6, href: "/reviews" },
-  { icon: Undo2, title: "Returns to process", detail: "RMA requests opened", count: 3, href: "/orders" },
-  { icon: FileText, title: "Content in review", detail: "“Best budget GPUs, 2026”", count: 1, href: "/content" },
-];
-
-export function OperationalQueues() {
+export function OperationalQueues({ queues, loading }: { queues: Queue[]; loading: boolean }) {
+  if (loading) return <p className="p-5 text-[13px] text-ink-muted">Loading…</p>;
   return (
     <ul className="divide-y divide-border">
       {queues.map((q) => (
@@ -39,7 +31,7 @@ export function OperationalQueues() {
             <span
               className={
                 "min-w-[26px] rounded-full px-2 py-0.5 text-center text-[12px] font-semibold " +
-                (q.urgent ? "bg-danger-tint text-danger-tint-ink" : "bg-accent-tint text-accent-tint-ink")
+                (q.urgent && q.count > 0 ? "bg-danger-tint text-danger-tint-ink" : "bg-accent-tint text-accent-tint-ink")
               }
             >
               {q.count}

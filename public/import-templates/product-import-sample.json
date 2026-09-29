@@ -1,0 +1,15 @@
+[
+  {
+    "categoryId": 1,
+    "title": "Sample USB-C Hub",
+    "slug": "sample-usb-c-hub",
+    "sku": "SAMPLE-HUB-001",
+    "shortDescription": "Replace this sample description with your product details.",
+    "status": "DRAFT",
+    "initialVariant": {
+      "price": 29.99,
+      "stockQty": 10,
+      "lowStockThreshold": 2
+    }
+  }
+]

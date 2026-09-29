@@ -35,7 +35,7 @@ function useBadgeCounts(): Record<string, number> {
 }
 const formatBadge = (count: number) => (count > 999 ? "999+" : String(count));
 
-type AdminUser = { name: string; roleName: string };
+export type AdminUser = { name: string; roleName: string };
 
 function initialsFor(name: string) {
   const initials = name
@@ -49,7 +49,7 @@ function initialsFor(name: string) {
   return initials || "AD";
 }
 
-function useCurrentAdmin(): AdminUser | null {
+export function useCurrentAdmin(): AdminUser | null {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   useEffect(() => {
     let active = true;

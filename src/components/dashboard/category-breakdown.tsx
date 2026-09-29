@@ -1,14 +1,9 @@
-const categories = [
-  { label: "PC Components", count: 612 },
-  { label: "Laptops", count: 487 },
-  { label: "Peripherals", count: 398 },
-  { label: "Computers", count: 274 },
-  { label: "Networking", count: 156 },
-  { label: "Accessories", count: 121 },
-];
+export type CategoryCount = { label: string; count: number };
 
-export function CategoryBreakdown() {
-  const max = Math.max(...categories.map((c) => c.count));
+export function CategoryBreakdown({ categories, loading }: { categories: CategoryCount[]; loading: boolean }) {
+  if (loading) return <p className="p-5 text-[13px] text-ink-muted">Loading…</p>;
+  if (!categories.length) return <p className="p-5 text-[13px] text-ink-muted">No categories yet.</p>;
+  const max = Math.max(1, ...categories.map((c) => c.count));
   return (
     <div className="space-y-4 p-5">
       {categories.map((c) => (
