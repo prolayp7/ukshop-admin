@@ -1,6 +1,7 @@
 "use client";
 
 import { CURRENCY } from "@/lib/currency";
+import { DatePicker } from "@/components/ui/date-picker";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Banknote, ChevronLeft, ChevronRight, Eye, LoaderCircle, PackageCheck, ReceiptText, RotateCcw, Search, UserRound, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,8 +80,8 @@ export function ReturnsListing() {
   <div className="mt-5 flex flex-wrap items-end gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-card">
     <label className="relative min-w-[240px] flex-1"><span className="sr-only">Search</span><Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} placeholder="Order number, product, reason, customer name or email" className={`${fieldClass} w-full pl-8`} /></label>
     <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">Status<select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className={`${fieldClass} mt-1 block`}><option value="">All statuses</option>{returnStatuses.map((value) => <option key={value} value={value}>{value.charAt(0) + value.slice(1).toLowerCase()}</option>)}</select></label>
-    <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">From<input type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(event) => setFilter({ dateFrom: event.target.value })} className={`${fieldClass} mt-1 block`} /></label>
-    <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">To<input type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(event) => setFilter({ dateTo: event.target.value })} className={`${fieldClass} mt-1 block`} /></label>
+    <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">From<DatePicker type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(value) => setFilter({ dateFrom: value })} className={`${fieldClass} mt-1 block`} /></label>
+    <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">To<DatePicker type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(value) => setFilter({ dateTo: value })} className={`${fieldClass} mt-1 block`} /></label>
     {filtered ? <button type="button" onClick={() => { setFilters(emptyFilters); setSearch(""); setPage(1); }} className="inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-[13px] font-semibold text-ink-secondary hover:bg-neutral-tint"><X className="h-4 w-4" />Clear</button> : null}
   </div>
   {filtered && meta?.summary ? <p className="mt-2 text-xs text-ink-muted">Matching: <strong className="text-ink">{meta.total}</strong> {meta.total === 1 ? "request" : "requests"} · requested <strong className="text-ink">{money(String(meta.summary.requestedAmount))}</strong> · refunded <strong className="text-ink">{money(String(meta.summary.refundedAmount))}</strong></p> : null}

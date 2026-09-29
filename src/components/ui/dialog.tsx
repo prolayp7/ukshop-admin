@@ -80,6 +80,37 @@ function DialogContent({
   )
 }
 
+// Same accessible dialog (focus trap, Esc, overlay), shown as a full-height panel sliding in from the right.
+// Lay children out as header / scrolling body / footer; it has no padding of its own.
+function DrawerContent({
+  className,
+  children,
+  ...props
+}: DialogPrimitive.Popup.Props) {
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Popup
+        data-slot="drawer-content"
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col bg-popover text-sm text-popover-foreground shadow-panel ring-1 ring-foreground/10 duration-200 outline-none data-open:animate-in data-open:slide-in-from-right data-closed:animate-out data-closed:slide-out-to-right",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close
+          data-slot="dialog-close"
+          render={<Button variant="ghost" className="absolute top-3 right-3" size="icon-sm" />}
+        >
+          <XIcon />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Popup>
+    </DialogPortal>
+  )
+}
+
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -157,4 +188,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DrawerContent,
 }

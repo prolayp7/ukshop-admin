@@ -10,3 +10,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
   } catch { return NextResponse.json({ message: "The mega menu panel could not be saved." }, { status: 503 }); }
 }
+
+// "No panel": the header item becomes a plain link.
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ itemId: string }> }) {
+  const { itemId } = await params;
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  if (!token) return NextResponse.json({ message: "Unauthorised" }, { status: 401 });
+  try {
+    const response = await fetch(getAdminApiUrl(`admin/menus/items/${itemId}/mega-menu-panel`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    return response.status === 204 ? new NextResponse(null, { status: 204 }) : NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
+  } catch { return NextResponse.json({ message: "The mega menu panel could not be removed." }, { status: 503 }); }
+}

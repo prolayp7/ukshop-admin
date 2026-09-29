@@ -4,7 +4,8 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import Link from "next/link";
 import NextImage from "next/image";
 import { AlertTriangle, ArrowDown, ArrowUp, BookOpen, Compass, ExternalLink, FileSearch, Gamepad2, Gift, Grid3x3, Image as ImageIcon, Images, Laptop, LayoutTemplate, LoaderCircle, Mail, MessageSquareQuote, Percent, RefreshCw, ShieldCheck, Sparkles, Store, Tag, Upload } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DrawerContent } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/ui/date-picker";
 import { collectionFromApi } from "@/lib/api-response";
 import { mediaFileUrl, type MediaItem } from "@/lib/media";
 
@@ -39,7 +40,26 @@ const meta: Record<SectionType, { icon: typeof LayoutTemplate; description: stri
 // admin page (this Homepage view only controls order/visibility for those),
 // some open a small config editor here, and the fully-automatic ones need no editor.
 const contentLink: Partial<Record<SectionType, string>> = { HERO: "/merchandising", TRUST_STRIP: "/merchandising", TESTIMONIALS: "/support-content", FAQS: "/support-content" };
-const configurable: SectionType[] = ["HERO", "FEATURED_PRODUCTS", "BANNERS", "NEWSLETTER", "DEALS"];
+const configurable: SectionType[] = ["HERO", "DEALS", "FEATURED_PRODUCTS", "NEW_ARRIVALS", "BRANDS", "TESTIMONIALS", "FAQS", "BANNERS", "NEWSLETTER", "CATEGORY_SHOWCASE", "SHOP_BY_NEED", "GAMING_SHOWCASE", "LAPTOP_SHOWCASE", "BUYING_GUIDES", "SEO_INTRO"];
+
+// Text fields per section (heading + the line or paragraphs under it). The API returns the text shoppers
+// currently see, defaults included; `auto` marks a body the storefront fills from live data when left empty.
+type BodyField = { label: string; rows?: number; auto?: string; hint?: string };
+const TEXT_FIELDS: Partial<Record<SectionType, { heading?: { auto?: string }; body?: BodyField }>> = {
+  DEALS: { heading: {}, body: { label: "Text", rows: 2, auto: "Automatic: “N lines reduced…” with the live on-sale count" } },
+  FEATURED_PRODUCTS: { heading: { auto: "Uses the featured section's title" }, body: { label: "Subtitle", auto: "Automatic: matches how the rail picks products (e.g. “ranked by units sold”)" } },
+  NEW_ARRIVALS: { heading: {}, body: { label: "Subtitle" } },
+  BRANDS: { heading: {}, body: { label: "Subtitle" } },
+  TESTIMONIALS: { heading: {} },
+  FAQS: { heading: {}, body: { label: "Subtitle" } },
+  NEWSLETTER: { heading: {}, body: { label: "Text", rows: 2 } },
+  CATEGORY_SHOWCASE: { heading: {}, body: { label: "Subtitle", hint: "{count} is replaced with the number of categories shown." } },
+  SHOP_BY_NEED: { heading: {}, body: { label: "Subtitle" } },
+  GAMING_SHOWCASE: { heading: {}, body: { label: "Subtitle", rows: 2 } },
+  LAPTOP_SHOWCASE: { heading: {}, body: { label: "Subtitle" } },
+  BUYING_GUIDES: { heading: {}, body: { label: "Subtitle" } },
+  SEO_INTRO: { heading: {}, body: { label: "Paragraphs", rows: 12, hint: "Separate paragraphs with a blank line." } },
+};
 
 export function HomepageListing() {
   const [items, setItems] = useState<Section[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState("");
@@ -100,10 +120,7 @@ export function HomepageListing() {
 
 function ConfigDialog({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
   if (section.type === "HERO") return <HeroCardsDialog section={section} onClose={onClose} onSaved={onSaved} />;
-  if (section.type === "FEATURED_PRODUCTS") return <FeaturedProductsDialog section={section} onClose={onClose} onSaved={onSaved} />;
-  if (section.type === "BANNERS") return <BannersConfigDialog section={section} onClose={onClose} onSaved={onSaved} />;
-  if (section.type === "DEALS") return <DealsConfigDialog section={section} onClose={onClose} onSaved={onSaved} />;
-  return <NewsletterConfigDialog section={section} onClose={onClose} onSaved={onSaved} />;
+  return <SectionContentDrawer section={section} onClose={onClose} onSaved={onSaved} />;
 }
 
 async function saveConfig(id: number, config: Record<string, unknown>) {
@@ -176,21 +193,7 @@ function HeroCardsDialog({ section, onClose, onSaved }: { section: Section; onCl
   <DialogFooter className="mt-4 rounded-none"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
 }
 
-function FeaturedProductsDialog({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [options, setOptions] = useState<FeaturedSection[]>([]);
-  const [slug, setSlug] = useState(typeof section.config.slug === "string" ? section.config.slug : "");
-  const [saving, setSaving] = useState(false), [error, setError] = useState("");
-  useEffect(() => { const timer = window.setTimeout(async () => { try { const response = await fetch("/api/featured-sections", { cache: "no-store" }); const payload = await response.json(); if (response.ok) setOptions(collectionFromApi<FeaturedSection>(payload)); } catch { /* leave options empty, select still accepts a manual slug */ } }, 0); return () => window.clearTimeout(timer); }, []);
-  async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(""); try { await saveConfig(section.id, { slug }); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Section could not be saved."); } finally { setSaving(false); } }
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>Featured products</DialogTitle><DialogDescription>Which featured section shows in this homepage rail. Manage the rails themselves in Merchandising.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)}>{error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}<label className="text-[13px] font-semibold text-ink-secondary">Featured section<select value={slug} onChange={(event) => setSlug(event.target.value)} className={inputClass}><option value="">Select…</option>{options.map((option) => <option key={option.id} value={option.slug}>{option.title}</option>)}</select></label><DialogFooter className="mt-4"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving || !slug} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
-}
 
-function BannersConfigDialog({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [position, setPosition] = useState(typeof section.config.position === "string" ? section.config.position : "");
-  const [saving, setSaving] = useState(false), [error, setError] = useState("");
-  async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(""); try { await saveConfig(section.id, { position: position.trim() }); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Section could not be saved."); } finally { setSaving(false); } }
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>Promotional banners</DialogTitle><DialogDescription>Which banner position renders here — matches the &ldquo;Position&rdquo; field on banners in Merchandising.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)}>{error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}<label className="text-[13px] font-semibold text-ink-secondary">Banner position<input required value={position} onChange={(event) => setPosition(event.target.value)} placeholder="e.g. home-top" className={`${inputClass} font-mono`} /></label><p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted"><Gift className="h-3.5 w-3.5" />Add or edit the banners themselves in Merchandising → Banners.</p><DialogFooter className="mt-4"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving || !position.trim()} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
-}
 
 function toLocalInputValue(iso: string): string {
   const d = new Date(iso);
@@ -199,19 +202,56 @@ function toLocalInputValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function DealsConfigDialog({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [heading, setHeading] = useState(typeof section.config.heading === "string" ? section.config.heading : "");
-  const [body, setBody] = useState(typeof section.config.body === "string" ? section.config.body : "");
-  const [endsAt, setEndsAt] = useState(typeof section.config.endsAt === "string" ? toLocalInputValue(section.config.endsAt) : "");
-  const [saving, setSaving] = useState(false), [error, setError] = useState("");
-  async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(""); try { await saveConfig(section.id, { heading: heading.trim() || undefined, body: body.trim() || undefined, endsAt: endsAt ? new Date(endsAt).toISOString() : null }); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Section could not be saved."); } finally { setSaving(false); } }
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>Today&rsquo;s deals</DialogTitle><DialogDescription>Heading, copy and countdown for the deals banner. Leave a field blank to use its automatic default.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)}>{error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}<label className="text-[13px] font-semibold text-ink-secondary">Heading<input value={heading} onChange={(event) => setHeading(event.target.value)} placeholder="Today's Best Deals" className={inputClass} /></label><label className="mt-4 block text-[13px] font-semibold text-ink-secondary">Body<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={2} placeholder="Auto: “N lines reduced…” with the live on-sale count" className={`${inputClass} h-auto resize-y py-2`} /></label><label className="mt-4 block text-[13px] font-semibold text-ink-secondary">Countdown ends<input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} className={inputClass} /></label><DialogFooter className="mt-4"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
-}
+const text = (value: unknown) => (typeof value === "string" ? value : "");
 
-function NewsletterConfigDialog({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [heading, setHeading] = useState(typeof section.config.heading === "string" ? section.config.heading : "");
-  const [body, setBody] = useState(typeof section.config.body === "string" ? section.config.body : "");
+// One drawer for every section's content: heading/subtitle plus the section's own setting
+// (featured rail, banner position, deals end date). Keeps any other config keys untouched on save.
+function SectionContentDrawer({ section, onClose, onSaved }: { section: Section; onClose: () => void; onSaved: () => Promise<void> }) {
+  const fields = TEXT_FIELDS[section.type] ?? {};
+  const [heading, setHeading] = useState(text(section.config.heading));
+  const [body, setBody] = useState(text(section.config.body));
+  const [slug, setSlug] = useState(text(section.config.slug));
+  const [position, setPosition] = useState(text(section.config.position));
+  const [endsAt, setEndsAt] = useState(typeof section.config.endsAt === "string" ? toLocalInputValue(section.config.endsAt) : "");
+  const [featuredOptions, setFeaturedOptions] = useState<FeaturedSection[]>([]);
   const [saving, setSaving] = useState(false), [error, setError] = useState("");
-  async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(""); try { await saveConfig(section.id, { heading: heading.trim(), body: body.trim() }); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Section could not be saved."); } finally { setSaving(false); } }
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>Newsletter signup</DialogTitle><DialogDescription>The heading and body shown above the email field.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)}>{error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}<label className="text-[13px] font-semibold text-ink-secondary">Heading<input required value={heading} onChange={(event) => setHeading(event.target.value)} className={inputClass} /></label><label className="mt-4 block text-[13px] font-semibold text-ink-secondary">Body<textarea required value={body} onChange={(event) => setBody(event.target.value)} rows={2} className={`${inputClass} h-auto resize-y py-2`} /></label><DialogFooter className="mt-4"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving || !heading.trim() || !body.trim()} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
+  const link = contentLink[section.type];
+
+  useEffect(() => {
+    if (section.type !== "FEATURED_PRODUCTS") return;
+    const timer = window.setTimeout(async () => { try { const response = await fetch("/api/featured-sections", { cache: "no-store" }); const payload = await response.json(); if (response.ok) setFeaturedOptions(collectionFromApi<FeaturedSection>(payload)); } catch { /* the select still shows the saved slug */ } }, 0);
+    return () => window.clearTimeout(timer);
+  }, [section.type]);
+
+  const missing = (section.type === "FEATURED_PRODUCTS" && !slug) || (section.type === "BANNERS" && !position.trim());
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setSaving(true); setError("");
+    const config: Record<string, unknown> = { ...section.config };
+    // An empty heading falls back to the default; an empty body hides the line, or goes automatic where it has one.
+    if (fields.heading) config.heading = heading.trim() || null;
+    if (fields.body) config.body = fields.body.auto && !body.trim() ? null : body.trim();
+    if (section.type === "FEATURED_PRODUCTS") config.slug = slug;
+    if (section.type === "BANNERS") config.position = position.trim();
+    if (section.type === "DEALS") config.endsAt = endsAt ? new Date(endsAt).toISOString() : null;
+    try { await saveConfig(section.id, config); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Section could not be saved."); } finally { setSaving(false); }
+  }
+
+  const label = "block text-[13px] font-semibold text-ink-secondary";
+  const hint = "mt-1 block text-xs font-normal text-ink-muted";
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DrawerContent className={section.type === "SEO_INTRO" ? "max-w-2xl" : undefined}>
+    <form onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
+      <DialogHeader className="border-b border-border px-5 py-4 pr-12"><DialogTitle className="text-[15px] font-semibold text-ink">{section.label}</DialogTitle><DialogDescription className="text-xs text-ink-muted">{meta[section.type].description}</DialogDescription></DialogHeader>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        {error ? <div role="alert" className="flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}
+        {section.type === "FEATURED_PRODUCTS" ? <label className={label}>Featured section<select value={slug} onChange={(event) => setSlug(event.target.value)} className={inputClass}><option value="">Select…</option>{featuredOptions.map((option) => <option key={option.id} value={option.slug}>{option.title}</option>)}{slug && !featuredOptions.some((option) => option.slug === slug) ? <option value={slug}>{slug}</option> : null}</select><span className={hint}>Manage the rails themselves in Merchandising → Featured sections.</span></label> : null}
+        {section.type === "BANNERS" ? <label className={label}>Banner position<input required value={position} onChange={(event) => setPosition(event.target.value)} placeholder="e.g. home-top" className={`${inputClass} font-mono`} /><span className={`${hint} flex items-center gap-1.5`}><Gift className="h-3.5 w-3.5" />Add or edit the banners themselves in Merchandising → Banners.</span></label> : null}
+        {fields.heading ? <label className={label}>Heading<input value={heading} onChange={(event) => setHeading(event.target.value)} maxLength={120} placeholder={fields.heading.auto ?? "Leave empty to use the original heading"} className={inputClass} />{fields.heading.auto ? <span className={hint}>Leave empty: {fields.heading.auto.toLowerCase()}.</span> : null}</label> : null}
+        {fields.body ? <label className={label}>{fields.body.label}<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={fields.body.rows ?? 2} maxLength={section.type === "SEO_INTRO" ? 5000 : 300} placeholder={fields.body.auto ?? "Leave empty to hide this line"} className={`${inputClass} h-auto resize-y py-2 leading-relaxed`} /><span className={hint}>{fields.body.hint ?? (fields.body.auto ? "Leave empty for the automatic text." : "Leave empty to hide it.")}</span></label> : null}
+        {section.type === "DEALS" ? <label className={label}>Countdown ends<DatePicker type="datetime-local" value={endsAt} onChange={setEndsAt} className={inputClass} /><span className={hint}>Leave empty to hide the countdown. It disappears automatically once this time passes.</span></label> : null}
+        {!fields.heading && !fields.body && section.type !== "FEATURED_PRODUCTS" && section.type !== "BANNERS" ? <p className="text-xs text-ink-muted">This section has no text of its own.</p> : null}
+        {link ? <Link href={link} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-secondary underline underline-offset-2 hover:text-ink">Manage the items shown here<ExternalLink className="h-3.5 w-3.5" /></Link> : null}
+      </div>
+      <div className="flex justify-end gap-2 border-t border-border bg-canvas px-5 py-3"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border bg-surface px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving || missing} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></div>
+    </form>
+  </DrawerContent></Dialog>;
 }

@@ -28,6 +28,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type OrderStatus =
   | "PENDING"
@@ -254,9 +255,9 @@ export function OrdersPage({ initialSearch = "", initialOpenId = null, initialPa
       </div>
       <div className="flex flex-col gap-2 border-b border-border bg-canvas/60 px-4 py-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2 text-xs text-ink-muted"><CalendarDays className="h-4 w-4" /><span>Order date</span></div>
-        <input type="date" aria-label="Orders from" value={dateFrom} max={dateTo || undefined} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} className="h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs text-ink-secondary" />
+        <DatePicker type="date" aria-label="Orders from" value={dateFrom} max={dateTo || undefined} onChange={(value) => { setDateFrom(value); setPage(1); }} className="h-9 w-auto min-w-36 text-xs" />
         <span className="hidden text-xs text-ink-faint sm:inline">to</span>
-        <input type="date" aria-label="Orders to" value={dateTo} min={dateFrom || undefined} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} className="h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs text-ink-secondary" />
+        <DatePicker type="date" aria-label="Orders to" value={dateTo} min={dateFrom || undefined} onChange={(value) => { setDateTo(value); setPage(1); }} className="h-9 w-auto min-w-36 text-xs" />
         {filtersActive ? <button type="button" onClick={() => { setSearchInput(""); setStatus(""); setPaymentStatus(""); setDateFrom(""); setDateTo(""); setPage(1); }} className="text-xs font-semibold text-ink-secondary hover:text-ink">Clear filters</button> : null}
       </div>
 
