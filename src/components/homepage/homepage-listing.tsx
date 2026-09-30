@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { AlertTriangle, ArrowDown, ArrowUp, BookOpen, Compass, ExternalLink, FileSearch, Gamepad2, Gift, Grid3x3, Image as ImageIcon, Images, Laptop, LayoutTemplate, LoaderCircle, Mail, MessageSquareQuote, Percent, RefreshCw, ShieldCheck, Sparkles, Store, Tag, Upload } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, BookOpen, Briefcase, Compass, ExternalLink, FileSearch, Gamepad2, Gift, Grid3x3, Image as ImageIcon, Images, Laptop, LayoutTemplate, LoaderCircle, Mail, MessageSquareQuote, Network, Percent, RefreshCw, ShieldCheck, Sparkles, Store, Tag, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DrawerContent } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
 import { collectionFromApi } from "@/lib/api-response";
@@ -11,7 +11,7 @@ import { mediaFileUrl, type MediaItem } from "@/lib/media";
 
 const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3002";
 
-type SectionType = "HERO" | "TRUST_STRIP" | "DEALS" | "FEATURED_PRODUCTS" | "NEW_ARRIVALS" | "BRANDS" | "TESTIMONIALS" | "FAQS" | "BANNERS" | "NEWSLETTER" | "CATEGORY_SHOWCASE" | "SHOP_BY_NEED" | "GAMING_SHOWCASE" | "LAPTOP_SHOWCASE" | "BUYING_GUIDES" | "SEO_INTRO";
+type SectionType = "HERO" | "TRUST_STRIP" | "DEALS" | "FEATURED_PRODUCTS" | "NEW_ARRIVALS" | "BRANDS" | "TESTIMONIALS" | "FAQS" | "BANNERS" | "NEWSLETTER" | "CATEGORY_SHOWCASE" | "SHOP_BY_NEED" | "GAMING_SHOWCASE" | "LAPTOP_SHOWCASE" | "BUYING_GUIDES" | "SEO_INTRO" | "BUSINESS_BANNER" | "CATEGORY_SPLIT";
 type Section = { id: number; type: SectionType; label: string; sortOrder: number; isVisible: boolean; config: Record<string, unknown> };
 type FeaturedSection = { id: number; title: string; slug: string };
 
@@ -35,12 +35,14 @@ const meta: Record<SectionType, { icon: typeof LayoutTemplate; description: stri
   LAPTOP_SHOWCASE: { icon: Laptop, description: "Fixed content — laptop category cards." },
   BUYING_GUIDES: { icon: BookOpen, description: "Fixed content — computer buying guides." },
   SEO_INTRO: { icon: FileSearch, description: "Fixed content — SEO intro copy and special offer." },
+  BUSINESS_BANNER: { icon: Briefcase, description: "Business computing banner linking to a category." },
+  CATEGORY_SPLIT: { icon: Network, description: "Two columns of category links (networking and setup)." },
 };
 // Where each type's content is actually authored - some point at an existing
 // admin page (this Homepage view only controls order/visibility for those),
 // some open a small config editor here, and the fully-automatic ones need no editor.
 const contentLink: Partial<Record<SectionType, string>> = { HERO: "/merchandising", TRUST_STRIP: "/merchandising", TESTIMONIALS: "/support-content", FAQS: "/support-content" };
-const configurable: SectionType[] = ["HERO", "DEALS", "FEATURED_PRODUCTS", "NEW_ARRIVALS", "BRANDS", "TESTIMONIALS", "FAQS", "BANNERS", "NEWSLETTER", "CATEGORY_SHOWCASE", "SHOP_BY_NEED", "GAMING_SHOWCASE", "LAPTOP_SHOWCASE", "BUYING_GUIDES", "SEO_INTRO"];
+const configurable: SectionType[] = ["HERO", "DEALS", "FEATURED_PRODUCTS", "NEW_ARRIVALS", "BRANDS", "TESTIMONIALS", "FAQS", "BANNERS", "NEWSLETTER", "CATEGORY_SHOWCASE", "SHOP_BY_NEED", "GAMING_SHOWCASE", "LAPTOP_SHOWCASE", "BUYING_GUIDES", "SEO_INTRO", "BUSINESS_BANNER"];
 
 // Text fields per section (heading + the line or paragraphs under it). The API returns the text shoppers
 // currently see, defaults included; `auto` marks a body the storefront fills from live data when left empty.
@@ -59,6 +61,7 @@ const TEXT_FIELDS: Partial<Record<SectionType, { heading?: { auto?: string }; bo
   LAPTOP_SHOWCASE: { heading: {}, body: { label: "Subtitle" } },
   BUYING_GUIDES: { heading: {}, body: { label: "Subtitle" } },
   SEO_INTRO: { heading: {}, body: { label: "Paragraphs", rows: 12, hint: "Separate paragraphs with a blank line." } },
+  BUSINESS_BANNER: { heading: {}, body: { label: "Text", rows: 2 } },
 };
 
 export function HomepageListing() {
