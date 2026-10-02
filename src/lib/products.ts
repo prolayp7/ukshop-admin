@@ -6,6 +6,7 @@ export type ProductVariantSummary = { id: number; price: string; salePrice: stri
 export type ProductListItem = {
   id: number; uuid: string; title: string; slug: string; sku: string | null; mpn: string | null;
   status: ProductStatus; isFeatured: boolean; category: CatalogOption; brand: CatalogOption | null;
+  dealEndsAt: string | null;
   taxRate: { id: number; title: string; ratePercent: string } | null;
   variants: ProductVariantSummary[]; _count: { variants: number }; featuredMedia: MediaItem | null;
   inventory: { stockQty: number; lowStock: boolean; outOfStock: boolean }; createdAt: string; updatedAt: string;

@@ -22,6 +22,7 @@ import {
   PanelTop,
   Banknote,
   Percent,
+  Timer,
   Truck,
   Megaphone,
   Menu as MenuIcon,
@@ -77,6 +78,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Marketing",
     items: [
+      { label: "Deals", href: "/deals", icon: Timer },
       { label: "Discounts", href: "/promotions", icon: BadgePercent },
       { label: "Merchandising", href: "/merchandising", icon: Megaphone },
       { label: "Subscribers", href: "/subscribers", icon: Mail },
