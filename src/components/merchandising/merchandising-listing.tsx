@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import NextImage from "next/image";
 import { AlertTriangle, BadgeCheck, Image as ImageIcon, LoaderCircle, Megaphone, Plus, Sparkles, Trash2, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,7 +22,11 @@ function apiMessage(payload: unknown, fallback: string) { if (payload && typeof 
 function statusBadge(status: Status) { return <span className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${status === "ACTIVE" ? "bg-positive-tint text-positive-tint-ink" : "bg-neutral-tint text-ink-muted"}`}>{status}</span>; }
 
 export function MerchandisingListing() {
-  const [tab, setTab] = useState<"hero" | "banners" | "sections">("hero");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [tab, setTab] = useState<"hero" | "banners" | "sections">(
+    initialTab === "banners" ? "banners" : initialTab === "sections" ? "sections" : "hero"
+  );
   const [slides, setSlides] = useState<HeroSlide[]>([]), [badges, setBadges] = useState<TrustBadge[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]), [sections, setSections] = useState<FeaturedSection[]>([]);
   const [loading, setLoading] = useState(true), [error, setError] = useState("");
@@ -30,6 +35,13 @@ export function MerchandisingListing() {
   const [sectionEditing, setSectionEditing] = useState<FeaturedSection | "new" | null>(null);
   const [deleteSlide, setDeleteSlide] = useState<HeroSlide | null>(null), [deleteBanner, setDeleteBanner] = useState<Banner | null>(null), [deleteSection, setDeleteSection] = useState<FeaturedSection | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const nextTab = searchParams.get("tab");
+    if (nextTab === "banners") setTab("banners");
+    else if (nextTab === "sections") setTab("sections");
+    else setTab("hero");
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -134,15 +146,172 @@ function BannerDialog({ banner, onClose, onSaved }: { banner: Banner | null; onC
   const [title, setTitle] = useState(banner?.title ?? ""), [slug, setSlug] = useState(banner?.slug ?? "");
   const [linkType, setLinkType] = useState<LinkType>(banner?.linkType ?? "CUSTOM_URL");
   const [target, setTarget] = useState(banner ? String(banner.productId ?? banner.categoryId ?? banner.brandId ?? banner.customUrl ?? "") : "");
+  const [targetSearch, setTargetSearch] = useState("");
+  const [targetOptions, setTargetOptions] = useState<Array<{ id: number; title: string; slug: string }>>([]);
+  const [targetLoading, setTargetLoading] = useState(false);
+  const [targetPickerOpen, setTargetPickerOpen] = useState(false);
   const [position, setPosition] = useState(banner?.position ?? ""), [displayOrder, setDisplayOrder] = useState(banner?.displayOrder != null ? String(banner.displayOrder) : "0");
   const [status, setStatus] = useState<Status>(banner?.status ?? "ACTIVE"), [saving, setSaving] = useState(false), [error, setError] = useState("");
+
+  useEffect(() => {
+    if (linkType === "CUSTOM_URL") {
+      setTargetOptions([]);
+      setTargetSearch("");
+      setTargetPickerOpen(false);
+      return;
+    }
+
+    let cancelled = false;
+    const endpoint = linkType === "PRODUCT"
+      ? "/api/products?perPage=100"
+      : linkType === "CATEGORY"
+        ? "/api/catalog/categories?page=1&perPage=100"
+        : "/api/catalog/brands?perPage=100";
+
+    setTargetLoading(true);
+    fetch(endpoint, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiMessage(payload, "Options could not be loaded."));
+        const data = collectionFromApi<{ id: number; title: string; slug: string }>(payload);
+        if (!cancelled) setTargetOptions(data);
+      })
+      .catch(() => {
+        if (!cancelled) setTargetOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTargetLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [linkType]);
+
+  const selectedTargetLabel = linkType === "CUSTOM_URL"
+    ? target
+    : targetOptions.find((item) => String(item.id) === String(target))?.title ?? (target ? `Selected ID: ${target}` : "");
+
+  const filteredTargetOptions = targetOptions.filter((item) => {
+    const query = targetSearch.trim().toLowerCase();
+    if (!query) return true;
+    return item.title.toLowerCase().includes(query) || item.slug.toLowerCase().includes(query);
+  });
+
   async function submit(event: FormEvent) {
     event.preventDefault(); setSaving(true); setError("");
     const body: Record<string, unknown> = { title: title.trim(), slug: slug.trim(), linkType, position: position.trim(), displayOrder: Number(displayOrder), status };
-    if (linkType === "PRODUCT") body.productId = Number(target); else if (linkType === "CATEGORY") body.categoryId = Number(target); else if (linkType === "BRAND") body.brandId = Number(target); else body.customUrl = target.trim();
-    try { const response = await fetch(banner ? `/api/banners/${banner.id}` : "/api/banners", { method: banner ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(apiMessage(payload, "Banner could not be saved.")); onClose(); await onSaved(); } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Banner could not be saved."); } finally { setSaving(false); }
+
+    if (linkType === "CUSTOM_URL") {
+      const customUrl = target.trim();
+      if (!customUrl) {
+        setError("Please enter a valid URL.");
+        setSaving(false);
+        return;
+      }
+      body.customUrl = customUrl;
+    } else {
+      const nextTarget = Number(target);
+      if (!nextTarget) {
+        setError(`Please select a ${linkType.toLowerCase()} first.`);
+        setSaving(false);
+        return;
+      }
+      if (linkType === "PRODUCT") body.productId = nextTarget;
+      else if (linkType === "CATEGORY") body.categoryId = nextTarget;
+      else if (linkType === "BRAND") body.brandId = nextTarget;
+    }
+
+    try {
+      const response = await fetch(banner ? `/api/banners/${banner.id}` : "/api/banners", { method: banner ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(apiMessage(payload, "Banner could not be saved."));
+      onClose();
+      await onSaved();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Banner could not be saved.");
+    } finally {
+      setSaving(false);
+    }
   }
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>{banner ? "Edit banner" : "Add banner"}</DialogTitle><DialogDescription>Promotional banner shown in a storefront position.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)}>{error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}<div className="grid grid-cols-2 gap-3"><label className="text-[13px] font-semibold text-ink-secondary">Title<input required value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label><label className="text-[13px] font-semibold text-ink-secondary">Slug<input required value={slug} onChange={(event) => setSlug(event.target.value)} className={`${inputClass} font-mono`} /></label></div><div className="mt-4 grid grid-cols-2 gap-3"><label className="text-[13px] font-semibold text-ink-secondary">Link type<select value={linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={inputClass}><option value="PRODUCT">Product</option><option value="CATEGORY">Category</option><option value="BRAND">Brand</option><option value="CUSTOM_URL">Custom URL</option></select></label><label className="text-[13px] font-semibold text-ink-secondary">{linkType === "CUSTOM_URL" ? "URL" : `${linkType.charAt(0)}${linkType.slice(1).toLowerCase()} ID`}<input required value={target} onChange={(event) => setTarget(event.target.value)} className={inputClass} /></label></div><div className="mt-4 grid grid-cols-2 gap-3"><label className="text-[13px] font-semibold text-ink-secondary">Position<input required value={position} onChange={(event) => setPosition(event.target.value)} placeholder="e.g. homepage-mid" className={inputClass} /></label><label className="text-[13px] font-semibold text-ink-secondary">Display order<input type="number" value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} className={inputClass} /></label></div><label className="mt-4 block text-[13px] font-semibold text-ink-secondary">Status<select value={status} onChange={(event) => setStatus(event.target.value as Status)} className={inputClass}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label><DialogFooter className="mt-4"><button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button><button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button></DialogFooter></form></DialogContent></Dialog>;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="fixed inset-y-0 right-0 m-0 flex h-full max-w-xl translate-x-0 translate-y-0 flex-col rounded-none border-l border-border bg-surface p-0 shadow-2xl data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right">
+        <DialogHeader className="border-b border-border px-5 py-4">
+          <DialogTitle>{banner ? "Edit banner" : "Add banner"}</DialogTitle>
+          <DialogDescription>Promotional banner shown in a storefront position.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
+          {error ? <div role="alert" className="mb-3 flex items-start gap-2 rounded-md bg-danger-tint p-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div> : null}
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-[13px] font-semibold text-ink-secondary">Title<input required value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label>
+              <label className="text-[13px] font-semibold text-ink-secondary">Slug<input required value={slug} onChange={(event) => setSlug(event.target.value)} className={`${inputClass} font-mono`} /></label>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <label className="text-[13px] font-semibold text-ink-secondary">Link type<select value={linkType} onChange={(event) => {
+                const nextType = event.target.value as LinkType;
+                setLinkType(nextType);
+                setTarget(nextType === "CUSTOM_URL" ? target : "");
+                setTargetSearch("");
+                setTargetPickerOpen(false);
+              }} className={inputClass}><option value="PRODUCT">Product</option><option value="CATEGORY">Category</option><option value="BRAND">Brand</option><option value="CUSTOM_URL">Custom URL</option></select></label>
+              {linkType === "CUSTOM_URL" ? (
+                <label className="text-[13px] font-semibold text-ink-secondary">URL<input required value={target} onChange={(event) => setTarget(event.target.value)} placeholder="/category/pc-components" className={inputClass} /></label>
+              ) : (
+                <div className="relative">
+                  <label className="block text-[13px] font-semibold text-ink-secondary">
+                    {linkType === "PRODUCT" ? "Product" : linkType === "CATEGORY" ? "Category" : "Brand"}
+                    <input
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={targetPickerOpen}
+                      value={targetPickerOpen ? targetSearch : selectedTargetLabel}
+                      onFocus={() => { setTargetPickerOpen(true); setTargetSearch(""); }}
+                      onChange={(event) => { setTargetPickerOpen(true); setTargetSearch(event.target.value); }}
+                      onBlur={(event) => {
+                        const nextTarget = event.relatedTarget;
+                        if (nextTarget instanceof Node && event.currentTarget.closest(".relative")?.contains(nextTarget)) return;
+                        window.setTimeout(() => setTargetPickerOpen(false), 120);
+                      }}
+                      placeholder={targetLoading ? "Loading…" : `Search ${linkType.toLowerCase()}s…`}
+                      className={inputClass}
+                    />
+                  </label>
+                  {targetPickerOpen ? (
+                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-surface p-1 shadow-card">
+                      {targetLoading ? <p className="px-2 py-2 text-xs text-ink-muted">Loading…</p> : filteredTargetOptions.length ? filteredTargetOptions.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => { setTarget(String(option.id)); setTargetSearch(option.title); setTargetPickerOpen(false); }}
+                          className="block w-full rounded px-2 py-2 text-left text-xs text-ink-secondary hover:bg-neutral-tint"
+                        >
+                          <span className="block font-semibold text-ink">{option.title}</span>
+                          <span className="mt-0.5 block text-ink-muted">{option.slug}</span>
+                        </button>
+                      )) : <p className="px-2 py-2 text-xs text-ink-muted">No matches found.</p>}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <label className="text-[13px] font-semibold text-ink-secondary">Position<input required value={position} onChange={(event) => setPosition(event.target.value)} placeholder="e.g. home-top" className={inputClass} /></label>
+              <label className="text-[13px] font-semibold text-ink-secondary">Display order<input value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} type="number" min="0" className={inputClass} /></label>
+            </div>
+            <label className="mt-4 block text-[13px] font-semibold text-ink-secondary">Status<select value={status} onChange={(event) => setStatus(event.target.value as Status)} className={inputClass}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label>
+          </div>
+          <DialogFooter className="border-t border-border px-5 py-4">
+            <button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-xs font-semibold text-ink-secondary">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}Save</button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function SectionDialog({ section, onClose, onSaved }: { section: FeaturedSection | null; onClose: () => void; onSaved: () => Promise<void> }) {

@@ -1,12 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { CreditCard, LoaderCircle, LockKeyhole, Mail, Save, Settings2, ShieldCheck, Truck, X } from "lucide-react";
+import { CreditCard, LoaderCircle, LockKeyhole, Mail, Save, Settings2, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { GeneralSettingsTab } from "./general-settings-tab";
 
 type Mode = "SANDBOX" | "LIVE";
-type Tab = "general" | "payments" | "delivery" | "email";
+type Tab = "general" | "payments" | "email";
 type Summary = { scope: string; configured: boolean; mode: Mode; enabled: boolean; updatedAt: string | null };
 type UnlockedState = { token: string; mode: Mode; enabled: boolean; settings: Record<string, string> };
 type Field = { key: string; label: string; secret?: boolean; optional?: boolean; type?: "number" | "email"; placeholder?: string };
@@ -15,8 +15,6 @@ type Definition = { scope: string; tab: Tab; name: string; description: string; 
 const definitions: Definition[] = [
   { scope: "payment.stripe", tab: "payments", name: "Stripe", description: "Card payments and signed webhook events.", fields: [{ key: "publishableKey", label: "Publishable key" }, { key: "secretKey", label: "Secret key", secret: true }, { key: "webhookSecret", label: "Webhook signing secret", secret: true, optional: true }] },
   { scope: "payment.paypal", tab: "payments", name: "PayPal", description: "PayPal Checkout and webhook credentials.", fields: [{ key: "clientId", label: "Client ID" }, { key: "clientSecret", label: "Client secret", secret: true }, { key: "webhookId", label: "Webhook ID", optional: true }] },
-  { scope: "delivery.fedex", tab: "delivery", name: "FedEx", description: "Shipping rates, labels and tracking.", fields: [{ key: "accountNumber", label: "Account number" }, { key: "apiKey", label: "API key" }, { key: "secretKey", label: "Secret key", secret: true }] },
-  { scope: "delivery.evri", tab: "delivery", name: "Evri", description: "UK parcel booking, labels and tracking.", fields: [{ key: "accountNumber", label: "Account number" }, { key: "clientId", label: "Client ID" }, { key: "clientSecret", label: "Client secret", secret: true }] },
   { scope: "email.smtp", tab: "email", name: "Store email", description: "SMTP delivery for orders, accounts and admin notifications.", fields: [{ key: "host", label: "SMTP host", placeholder: "smtp.example.com" }, { key: "port", label: "Port", type: "number", placeholder: "587" }, { key: "username", label: "Username" }, { key: "password", label: "Password", secret: true }, { key: "fromEmail", label: "From email", type: "email", placeholder: "orders@example.co.uk" }, { key: "fromName", label: "From name", placeholder: "UK Computer Shop" }] },
 ];
 
@@ -32,8 +30,8 @@ export function IntegrationSettingsPage() {
   async function loadSummaries() { setLoading(true); try { const response = await fetch("/api/settings/integrations", { cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(apiMessage(payload, "Settings could not be loaded.")); setSummaries(payload.data ?? payload); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Settings could not be loaded."); } finally { setLoading(false); } }
   useEffect(() => { const timer = window.setTimeout(() => void loadSummaries(), 0); return () => window.clearTimeout(timer); }, []);
 
-  return <div className="w-full"><div><h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Settings</h1><p className="mt-1 text-[13.5px] text-ink-muted">Site branding and contact details, plus payments, delivery partners and store email.</p></div>
-    <div className="mt-6 flex gap-1 overflow-x-auto border-b border-border">{([{ id: "general", label: "General", icon: Settings2 }, { id: "payments", label: "Payment settings", icon: CreditCard }, { id: "delivery", label: "Delivery partners", icon: Truck }, { id: "email", label: "Email settings", icon: Mail }] as const).map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={cn("relative inline-flex shrink-0 items-center gap-2 px-3 py-3 text-[13px] font-semibold", tab === item.id ? "text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-accent" : "text-ink-muted hover:text-ink")}><item.icon className="h-4 w-4" />{item.label}</button>)}</div>
+  return <div className="w-full"><div><h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Settings</h1><p className="mt-1 text-[13.5px] text-ink-muted">Site branding and contact details, payment settings, and store email.</p></div>
+    <div className="mt-6 flex gap-1 overflow-x-auto border-b border-border">{([{ id: "general", label: "General", icon: Settings2 }, { id: "payments", label: "Payment settings", icon: CreditCard }, { id: "email", label: "Email settings", icon: Mail }] as const).map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={cn("relative inline-flex shrink-0 items-center gap-2 px-3 py-3 text-[13px] font-semibold", tab === item.id ? "text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-accent" : "text-ink-muted hover:text-ink")}><item.icon className="h-4 w-4" />{item.label}</button>)}</div>
     {tab === "general" ? <GeneralSettingsTab /> : <>
     <div className="mt-5 rounded-md bg-highlight-tint px-4 py-3 text-xs leading-5 text-highlight-tint-ink ring-1 ring-inset ring-highlight-tint-border"><span className="font-semibold">Protected settings.</span> Every integration starts locked. A Super Admin password is required to view or change credentials, and access expires after five minutes.</div>
     {error ? <div role="alert" className="mt-4 rounded-md bg-danger-tint px-4 py-3 text-xs text-danger-tint-ink ring-1 ring-inset ring-danger-tint-border">{error}</div> : null}
