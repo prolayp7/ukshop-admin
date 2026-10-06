@@ -1,9 +1,11 @@
 export const ACCESS_TOKEN_COOKIE = "ukshop_admin_access";
 export const REFRESH_TOKEN_COOKIE = "ukshop_admin_refresh";
 
+const cookieSecureSetting = process.env.UKSHOP_ADMIN_COOKIE_SECURE;
+
 export const authCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: cookieSecureSetting === "true" || (cookieSecureSetting !== "false" && process.env.NODE_ENV === "production"),
   sameSite: "lax" as const,
   path: "/",
 };
