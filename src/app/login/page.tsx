@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,25 +15,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { safeReturnPath } from "@/lib/return-path";
-
-// Fixed-seed PRNG so the starfield is identical on server and client render (no hydration mismatch).
-function mulberry32(seed: number) {
-  return function random() {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const randomStar = mulberry32(1337);
-const STARS = Array.from({ length: 130 }, () => ({
-  cx: randomStar() * 600,
-  cy: randomStar() * 430,
-  r: randomStar() * 1.2 + 0.3,
-  o: randomStar() * 0.7 + 0.25,
-}));
 
 // Builds a rounded-corner clip-path polygon whose left edge stays straight and whose
 // right edge tapers inward toward the bottom, approximating a true circular corner
@@ -125,82 +107,15 @@ export default function LoginPage() {
         className="relative hidden w-[46%] shrink-0 overflow-hidden bg-[#050c18] px-10 py-9 text-white lg:flex lg:flex-col lg:justify-between xl:px-14 [filter:drop-shadow(0_18px_40px_rgba(10,37,64,0.35))]"
         style={{ clipPath: PANEL_CLIP_PATH }}
       >
-        <svg
-          className="pointer-events-none absolute inset-0 -z-20 size-full"
-          viewBox="0 0 600 760"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-        >
-          <defs>
-            <radialGradient id="sky" cx="50%" cy="18%" r="85%">
-              <stop offset="0%" stopColor="#122036" />
-              <stop offset="55%" stopColor="#0a1727" />
-              <stop offset="100%" stopColor="#040914" />
-            </radialGradient>
-            <radialGradient id="nebula" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#5b6ecb" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#5b6ecb" stopOpacity="0" />
-            </radialGradient>
-            <linearGradient id="terrain" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#26364c" />
-              <stop offset="100%" stopColor="#0c1420" />
-            </linearGradient>
-            <linearGradient id="podBody" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3a4451" />
-              <stop offset="55%" stopColor="#1c222b" />
-              <stop offset="100%" stopColor="#0c0f14" />
-            </linearGradient>
-            <radialGradient id="core" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#fff3d6" />
-              <stop offset="35%" stopColor="#ff8a00" />
-              <stop offset="100%" stopColor="#c23a12" />
-            </radialGradient>
-            <radialGradient id="halo" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ff8a00" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#ff8a00" stopOpacity="0" />
-            </radialGradient>
-            <filter id="blurGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="16" />
-            </filter>
-            <filter id="blurNebula" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="45" />
-            </filter>
-          </defs>
-
-          <rect width="600" height="760" fill="url(#sky)" />
-
-          <g transform="translate(150,160) rotate(-18)" filter="url(#blurNebula)">
-            <ellipse cx="0" cy="0" rx="260" ry="110" fill="url(#nebula)" />
-          </g>
-          <g transform="translate(430,90) rotate(12)" filter="url(#blurNebula)">
-            <ellipse cx="0" cy="0" rx="200" ry="85" fill="url(#nebula)" />
-          </g>
-
-          {STARS.map((star, index) => (
-            <circle key={index} cx={star.cx} cy={star.cy} r={star.r} fill="#ffffff" opacity={star.o} />
-          ))}
-
-          <path
-            d="M0,540 C90,505 150,555 240,525 C340,492 400,565 500,530 C545,514 575,522 600,515 L600,760 L0,760 Z"
-            fill="url(#terrain)"
-          />
-          <path
-            d="M0,540 C90,505 150,555 240,525 C340,492 400,565 500,530 C545,514 575,522 600,515"
-            fill="none"
-            stroke="#5a7396"
-            strokeOpacity="0.4"
-            strokeWidth="2"
-          />
-
-          <g transform="translate(255,505) rotate(-7)">
-            <ellipse cx="55" cy="0" rx="95" ry="95" fill="url(#halo)" filter="url(#blurGlow)" />
-            <rect x="-95" y="-30" width="180" height="60" rx="30" fill="url(#podBody)" />
-            <rect x="-70" y="-11" width="14" height="14" rx="2" fill="#ff8a00" opacity="0.85" />
-            <circle cx="55" cy="0" r="24" fill="url(#core)" />
-          </g>
-        </svg>
-
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#050c18] via-[#050c18]/10 to-[#050c18]/45" />
+        <Image
+          src="/bg.webp"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 1024px) 46vw, 0px"
+          className="pointer-events-none -z-20 object-cover object-[center_46%]"
+        />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(5,12,24,0.70)_0%,rgba(5,12,24,0.58)_44%,rgba(5,12,24,0.94)_100%)]" />
 
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -250,6 +165,14 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+        <a
+          href="https://commons.wikimedia.org/wiki/File:Corsair_4000D_Airflow_mid-tower_ATX_case.tif"
+          target="_blank"
+          rel="noreferrer"
+          className="absolute bottom-3 left-10 z-10 text-[9px] text-white/60 underline-offset-2 hover:underline"
+        >
+          Photo by PJ · Wikimedia Commons · CC BY-SA 4.0
+        </a>
       </section>
 
       <section className="flex flex-1 items-center justify-center px-5 py-12 sm:px-10">
