@@ -289,6 +289,9 @@ export function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: ()
   const [trackingSaving, setTrackingSaving] = useState(false);
   const [trackingMessage, setTrackingMessage] = useState("");
   const [trackingError, setTrackingError] = useState("");
+  const [paymentReminderSending, setPaymentReminderSending] = useState(false);
+  const [paymentReminderError, setPaymentReminderError] = useState("");
+  const [paymentReminderMessage, setPaymentReminderMessage] = useState("");
   const applyOrder = useCallback((nextOrder: OrderDetail) => {
     setOrder(nextOrder);
     setTrackingCarrier(nextOrder.trackingCarrier ?? "");
@@ -316,10 +319,27 @@ export function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: ()
     } finally { setTrackingSaving(false); }
   }
 
+  async function sendPaymentReminder() {
+    setPaymentReminderSending(true);
+    setPaymentReminderError("");
+    setPaymentReminderMessage("");
+    try {
+      const response = await fetch(`/api/orders/${id}/payment-reminder`, { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(message(payload, "The payment reminder could not be sent."));
+      setPaymentReminderMessage(`Payment reminder sent to ${order?.email ?? "the customer"}.`);
+    } catch (reminderError) {
+      setPaymentReminderError(reminderError instanceof Error ? reminderError.message : "The payment reminder could not be sent.");
+    } finally {
+      setPaymentReminderSending(false);
+    }
+  }
+
   const totalItems = order?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
   const deliveredEntry = order?.statusHistory.find((entry) => entry.toStatus === "DELIVERED");
   const initials = order ? order.shippingFullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() : "";
   const addressLine = order ? [order.shippingLine1, order.shippingLine2, order.shippingCity, order.shippingCounty, order.shippingPostcode, order.shippingCountry].filter(Boolean).join(", ") : "";
+  const canSendPaymentReminder = !!order && ["PENDING", "AWAITING_PAYMENT", "FAILED"].includes(order.status) && ["PENDING", "FAILED"].includes(order.paymentStatus);
 
   return <div className="fixed inset-0 z-50 overflow-y-auto">
     <button type="button" onClick={onClose} aria-label="Close order details" className="fixed inset-0 bg-slate-950/40" />
@@ -350,7 +370,17 @@ export function OrderDrawer({ id, onClose, onStatus }: { id: number; onClose: ()
             <div className="rounded-xl border border-border bg-canvas p-4"><h3 className="text-[13px] font-semibold text-ink">Order Summary</h3><dl className="mt-3 space-y-2 text-xs"><Total label="Sub-Total" value={order.subtotal} /><Total label="Discount" value={order.discountTotal} negative /><Total label="Delivery" value={order.shippingCharge} /><Total label="VAT" value={order.vatTotal} /><div className="flex justify-between border-t border-border pt-3 text-[13px] font-semibold text-ink"><dt>Total</dt><dd className="tabular-nums">{money(order.total)}</dd></div></dl>{order.paymentTransactions[0] ? <p className="mt-3 rounded-md bg-surface px-3 py-2 text-[11px] text-ink-secondary ring-1 ring-inset ring-border">Paid via {order.paymentTransactions[0].provider}</p> : null}<RefundPanel order={order} onDone={reload} /></div>
           </div>
 
-          <section><h3 className="text-[13px] font-semibold text-ink">Customer Information</h3><div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-canvas p-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent-tint-ink">{initials}</span><div className="min-w-0"><p className="text-[13px] font-semibold text-ink">{order.shippingFullName}</p><div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-secondary"><span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-ink-faint" />{order.email}</span>{order.phone ? <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-ink-faint" />{order.phone}</span> : null}<span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-ink-faint" />{addressLine}</span></div></div></div></section>
+          <section><h3 className="text-[13px] font-semibold text-ink">Customer Information</h3><div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-canvas p-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent-tint-ink">{initials}</span><div className="min-w-0"><p className="text-[13px] font-semibold text-ink">{order.shippingFullName}</p><div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-secondary"><span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-ink-faint" />{order.email}</span>{order.phone ? <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-ink-faint" />{order.phone}</span> : null}<span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-ink-faint" />{addressLine}</span></div></div></div>
+            {canSendPaymentReminder ? <div className="mt-3 space-y-2">
+              <p className="text-[11px] text-ink-muted">Emails a secure payment link that expires after 48 hours.</p>
+              {paymentReminderError ? <p role="alert" className="text-xs text-danger-tint-ink">{paymentReminderError}</p> : null}
+              {paymentReminderMessage ? <p role="status" className="text-xs text-positive-tint-ink">{paymentReminderMessage}</p> : null}
+              <button type="button" onClick={() => void sendPaymentReminder()} disabled={paymentReminderSending} aria-busy={paymentReminderSending} className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3.5 text-xs font-semibold text-white hover:bg-[#1d2939] disabled:cursor-not-allowed disabled:opacity-50">
+                {paymentReminderSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {paymentReminderSending ? "Sending reminder…" : "Send payment reminder"}
+              </button>
+            </div> : null}
+          </section>
 
           <section><h3 className="text-[13px] font-semibold text-ink">Order Tracking</h3><div className="mt-3">{order.statusHistory.map((entry, index) => { const current = index === order.statusHistory.length - 1; return <div key={entry.id} className="relative flex gap-3 pb-6 last:pb-0">{index < order.statusHistory.length - 1 ? <span className="absolute left-[11px] top-6 bottom-0 w-px bg-border" /> : null}<span className={cn("z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", current ? "bg-positive text-white" : "bg-neutral-tint text-ink-muted")}>{current ? <Check className="h-3.5 w-3.5" /> : <span className="h-2 w-2 rounded-full bg-current" />}</span><div className="flex-1 pt-0.5"><div className="flex items-baseline justify-between gap-3"><p className="text-xs font-semibold text-ink">{label(entry.toStatus)}</p><p className="shrink-0 text-[10.5px] text-ink-muted">{new Date(entry.createdAt).toLocaleDateString("en-GB")}, {new Date(entry.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p></div><p className="mt-0.5 text-[11px] text-ink-muted">{entry.changedByAdmin ? `Changed by ${entry.changedByAdmin.name}` : "Automatic update"}{entry.note ? ` · ${entry.note}` : ""}</p></div></div>; })}{!order.statusHistory.length ? <p className="text-xs text-ink-muted">No status history yet.</p> : null}</div></section>
 
