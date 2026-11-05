@@ -49,6 +49,20 @@ function messageFrom(payload: unknown, fallback = "The product could not be crea
     if (typeof message === "string") return message;
     if (Array.isArray(message) && typeof message[0] === "string") return message[0];
   }
+  if (payload && typeof payload === "object" && "error" in payload) {
+    const error = (payload as { error?: unknown }).error;
+    if (error && typeof error === "object" && "message" in error) {
+      const message = (error as { message?: unknown }).message;
+      if (typeof message === "string") return message;
+    }
+    if (error && typeof error === "object" && "details" in error) {
+      const details = (error as { details?: unknown }).details;
+      if (details && typeof details === "object" && "errors" in details) {
+        const errors = (details as { errors?: unknown }).errors;
+        if (Array.isArray(errors) && errors.every((item) => typeof item === "string")) return errors.join(", ");
+      }
+    }
+  }
   return fallback;
 }
 
