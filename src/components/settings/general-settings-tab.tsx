@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 import NextImage from "next/image";
 import { ExternalLink, Image as ImageIcon, LoaderCircle, Save, Upload } from "lucide-react";
 import { mediaFileUrl, type MediaItem } from "@/lib/media";
+import { toast } from "sonner";
 
 type GeneralSettings = {
   brandName: string;
@@ -107,14 +108,15 @@ export function GeneralSettingsTab() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSaving(true); setMessage("");
+    const toastId = toast.loading("Saving general settings...");
     try {
       const response = await fetch("/api/settings/general", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(apiMessage(payload, "General settings could not be saved."));
       window.dispatchEvent(new CustomEvent("ukshop:brand-name-updated", { detail: settings.brandName }));
-      setMessage("General settings saved.");
+      toast.success("General settings saved.", { id: toastId });
     } catch (saveError) {
-      setMessage(saveError instanceof Error ? saveError.message : "General settings could not be saved.");
+      toast.error(saveError instanceof Error ? saveError.message : "General settings could not be saved.", { id: toastId });
     } finally {
       setSaving(false);
     }
