@@ -113,7 +113,7 @@ export function GeneralSettingsTab() {
       const response = await fetch("/api/settings/general", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(apiMessage(payload, "General settings could not be saved."));
-      window.dispatchEvent(new CustomEvent("ukshop:brand-name-updated", { detail: settings.brandName }));
+      window.dispatchEvent(new CustomEvent("admin:brand-name-updated", { detail: settings.brandName }));
       toast.success("General settings saved.", { id: toastId });
     } catch (saveError) {
       toast.error(saveError instanceof Error ? saveError.message : "General settings could not be saved.", { id: toastId });

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { safeReturnPath } from "@/lib/return-path";
+import { useAdminBrandName } from "@/components/shell/app-shell";
 
 // Builds a rounded-corner clip-path polygon whose left edge stays straight and whose
 // right edge tapers inward toward the bottom, approximating a true circular corner
@@ -61,6 +62,7 @@ const OPS_FACTS = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const brandName = useAdminBrandName();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -122,7 +124,7 @@ export default function LoginPage() {
             <span className="flex size-9 items-center justify-center rounded-md bg-accent text-accent-ink">
               <LockKeyhole className="size-[18px]" aria-hidden="true" />
             </span>
-            <span className="text-[14.5px] font-semibold tracking-[-0.01em]">UK Computer Shop</span>
+            <span className="text-[14.5px] font-semibold tracking-[-0.01em]">{brandName}</span>
           </div>
           <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium tracking-[0.01em] text-sidebar-ink">
             Operations desk
@@ -181,7 +183,7 @@ export default function LoginPage() {
             <span className="flex size-9 items-center justify-center rounded-md bg-sidebar text-accent">
               <LockKeyhole className="size-[18px]" aria-hidden="true" />
             </span>
-            <span className="text-[14.5px] font-semibold text-ink">UK Computer Shop</span>
+            <span className="text-[14.5px] font-semibold text-ink">{brandName}</span>
           </div>
 
           <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-accent-strong">Welcome back</p>
