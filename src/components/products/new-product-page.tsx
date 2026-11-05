@@ -25,7 +25,7 @@ type ProductDetail = {
   warrantyMonths: number | null; allowCustomization: boolean; customizationInstructions: string | null; costPrice: string | null;
   minimumOrderQuantity: number; stockLocation: string | null; receiveLowStockAlert: boolean; outOfStockBehavior: "DENY" | "ALLOW";
   inStockLabel: string | null; outOfStockLabel: string | null; availabilityDate: string | null;
-  deliveryTimeMode: "NONE" | "DEFAULT" | "SPECIFIC"; inStockDeliveryTime: string | null; outOfStockDeliveryTime: string | null;
+  deliveryTimeMode: "NONE" | "DEFAULT" | "SPECIFIC" | "CUSTOM"; inStockDeliveryTime: string | null; outOfStockDeliveryTime: string | null;
   additionalShippingCost: string | null; isReturnable: boolean; returnableDays: number; isIndexable: boolean;
   metaTitle: string | null; metaDescription: string | null; seoTags: string[]; offlineRedirectBehavior: "NOT_FOUND" | "GONE" | "REDIRECT_CATEGORY_301" | "REDIRECT_CATEGORY_302";
   redirectTargetCategoryId: number | null;
@@ -188,7 +188,7 @@ export function NewProductPage({ productType, productId }: { productType: Produc
         setCostPrice(product.costPrice ?? ""); setMinimumOrderQuantity(String(product.minimumOrderQuantity ?? 1));
         setStockLocation(product.stockLocation ?? ""); setReceiveLowStockAlert(product.receiveLowStockAlert);
         setOutOfStockBehavior(product.outOfStockBehavior ?? "DENY"); setInStockLabel(product.inStockLabel ?? ""); setOutOfStockLabel(product.outOfStockLabel ?? "");
-        setAvailabilityDate(product.availabilityDate?.slice(0, 10) ?? ""); setDeliveryTimeMode(product.deliveryTimeMode ?? "DEFAULT");
+        setAvailabilityDate(product.availabilityDate?.slice(0, 10) ?? ""); setDeliveryTimeMode(product.deliveryTimeMode === "CUSTOM" ? "SPECIFIC" : product.deliveryTimeMode ?? "DEFAULT");
         setInStockDeliveryTime(product.inStockDeliveryTime ?? ""); setOutOfStockDeliveryTime(product.outOfStockDeliveryTime ?? "");
         setAdditionalShippingCost(product.additionalShippingCost ?? ""); setShippingMethodIds(product.shippingMethods.map((item) => item.shippingMethodId));
         setRelatedProducts(product.relatedProducts.map((item) => item.relatedProduct));
