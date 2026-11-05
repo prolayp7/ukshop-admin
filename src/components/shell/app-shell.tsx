@@ -86,7 +86,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useIsomorphicLayoutEffect(() => {
-    document.title = `${brandName} · Admin`;
+    const title = `${brandName} · Admin`;
+    const syncTitle = () => {
+      if (document.title !== title) document.title = title;
+    };
+
+    syncTitle();
+    const observer = new MutationObserver(syncTitle);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
   }, [brandName]);
 
   // The Homepage page's live preview panel wants as much width as it can
