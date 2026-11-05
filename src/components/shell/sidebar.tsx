@@ -72,7 +72,7 @@ export function useCurrentAdmin(): AdminUser | null {
   return adminUser;
 }
 
-function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname: string; onNavigate?: () => void; collapsed?: boolean }) {
+function SidebarContent({ pathname, brandName, onNavigate, collapsed = false }: { pathname: string; brandName: string; onNavigate?: () => void; collapsed?: boolean }) {
   const currentHref = activeHref(pathname);
   const badgeCounts = useBadgeCounts();
   const adminUser = useCurrentAdmin();
@@ -87,8 +87,8 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
         </span>
         {!collapsed && (
           <span className="leading-tight">
-            <span className="block text-[13.5px] font-semibold tracking-tight text-white">
-              UK Computer Shop
+            <span className="block max-w-[170px] truncate text-[13.5px] font-semibold tracking-tight text-white">
+              {brandName}
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-label">
               Administration
@@ -208,18 +208,18 @@ function SidebarContent({ pathname, onNavigate, collapsed = false }: { pathname:
   );
 }
 
-export function DesktopSidebar({ collapsed = false }: { collapsed?: boolean }) {
+export function DesktopSidebar({ collapsed = false, brandName }: { collapsed?: boolean; brandName: string }) {
   const pathname = usePathname();
   return (
     <aside className={cn("hidden shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-150 lg:block", collapsed ? "w-[72px]" : "w-64")}>
       <div className={cn("fixed h-screen transition-[width] duration-150", collapsed ? "w-[72px]" : "w-64")}>
-        <SidebarContent pathname={pathname} collapsed={collapsed} />
+        <SidebarContent pathname={pathname} brandName={brandName} collapsed={collapsed} />
       </div>
     </aside>
   );
 }
 
-export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileSidebar({ open, onClose, brandName }: { open: boolean; onClose: () => void; brandName: string }) {
   const pathname = usePathname();
   return (
     <div
@@ -250,7 +250,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
         >
           <X className="h-[18px] w-[18px]" />
         </button>
-        <SidebarContent pathname={pathname} onNavigate={onClose} />
+        <SidebarContent pathname={pathname} brandName={brandName} onNavigate={onClose} />
       </div>
     </div>
   );
